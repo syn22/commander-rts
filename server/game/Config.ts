@@ -35,38 +35,39 @@ export const GAME_CONFIG = {
 // Unit stats lookup
 // speed = tiles per second (1 = one tile per second)
 // atkSpeed = seconds between attacks (higher = slower attacks)
+// Balanced for command-based gameplay with slower combat pace
 export const UNIT_STATS: Record<UnitType, UnitStats> = {
   [UnitType.FOOTMAN]: {
-    hp: 150,
-    atk: 15,
+    hp: 250,
+    atk: 12,
     range: 1,
     speed: 1,       // 1 tile/sec — slow infantry
     vision: 5,
-    atkSpeed: 2.0,  // attacks every 2 seconds
+    atkSpeed: 3.0,  // attacks every 3 seconds
   },
   [UnitType.ARCHER]: {
-    hp: 60,
-    atk: 20,
+    hp: 120,
+    atk: 15,
     range: 6,
     speed: 1.5,     // 1.5 tiles/sec — light unit
     vision: 8,
-    atkSpeed: 2.5,  // attacks every 2.5 seconds
+    atkSpeed: 3.5,  // attacks every 3.5 seconds
   },
   [UnitType.CAVALRY]: {
-    hp: 100,
-    atk: 25,
+    hp: 180,
+    atk: 20,
     range: 1,
     speed: 2.5,     // 2.5 tiles/sec — fastest unit
     vision: 6,
-    atkSpeed: 2.0,  // attacks every 2 seconds
+    atkSpeed: 2.5,  // attacks every 2.5 seconds
   },
   [UnitType.CATAPULT]: {
-    hp: 80,
-    atk: 50,
+    hp: 150,
+    atk: 40,
     range: 10,
     speed: 0.5,     // 0.5 tiles/sec — very slow siege
     vision: 4,
-    atkSpeed: 4.0,  // attacks every 4 seconds
+    atkSpeed: 6.0,  // attacks every 6 seconds (much slower)
     minRange: 3,
     splashRadius: 2,
   },
