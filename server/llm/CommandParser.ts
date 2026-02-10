@@ -13,8 +13,13 @@ let anthropicClient: Anthropic | null = null;
 
 function getClient(): Anthropic {
   if (!anthropicClient) {
+    // Trim whitespace from API key to prevent issues with copy-paste
+    const apiKey = (process.env.ANTHROPIC_API_KEY || '').trim();
+    if (!apiKey || apiKey === 'your-api-key-here') {
+      throw new Error('ANTHROPIC_API_KEY environment variable is not set');
+    }
     anthropicClient = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY || 'your-api-key-here',
+      apiKey,
     });
   }
   return anthropicClient;
@@ -79,9 +84,15 @@ export async function parseCommand(
     // Check if it's an API key issue
     const errMsg = error instanceof Error ? error.message : String(error);
     if (errMsg.includes('api_key') || errMsg.includes('authentication') || errMsg.includes('401')) {
+      const apiKey = process.env.ANTHROPIC_API_KEY;
+      const keyInfo = apiKey
+        ? `Key present (${apiKey.length} chars, starts: "${apiKey.substring(0, 15)}...")`
+        : 'Key missing';
+      console.error(`API Key Debug: ${keyInfo}`);
+
       return {
         actions: [],
-        response: 'API key not configured. Please set ANTHROPIC_API_KEY in .env file.',
+        response: 'Authentication failed. API key may be invalid or expired.',
         needsClarification: false,
       };
     }

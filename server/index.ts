@@ -42,10 +42,17 @@ app.use((_req, res) => {
 setupSocketHandlers(io);
 
 httpServer.listen(PORT, () => {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  let keyStatus = 'NOT SET';
+  if (apiKey) {
+    const trimmed = apiKey.trim();
+    keyStatus = `SET (len: ${apiKey.length}, trimmed: ${trimmed.length}, start: "${trimmed.substring(0, 15)}...")`;
+  }
+
   console.log(`\n====================================`);
   console.log(`  Commander RTS Server`);
   console.log(`  Running on http://localhost:${PORT}`);
   console.log(`  Serving client from: ${clientDistPath}`);
-  console.log(`  ANTHROPIC_API_KEY: ${process.env.ANTHROPIC_API_KEY ? 'SET (' + process.env.ANTHROPIC_API_KEY.substring(0, 10) + '...)' : 'NOT SET'}`);
+  console.log(`  ANTHROPIC_API_KEY: ${keyStatus}`);
   console.log(`====================================\n`);
 });
