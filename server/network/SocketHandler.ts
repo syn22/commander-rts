@@ -413,9 +413,14 @@ function cleanupSession(socketId: string, io: Server): void {
  * Execute validated LLM actions on the game engine
  */
 function executeActions(engine: GameEngine, player: PlayerId, actions: LLMAction[]): void {
+  console.log(`Executing ${actions.length} actions for player ${player}`);
+
   for (const action of actions) {
     const unit = engine.state.units.find(u => u.id === action.unitId && u.owner === player && u.alive);
-    if (!unit) continue;
+    if (!unit) {
+      console.warn(`Unit not found for action: ${action.unitId}`);
+      continue;
+    }
 
     const order: UnitOrder = {
       type: action.type,
@@ -429,6 +434,9 @@ function executeActions(engine: GameEngine, player: PlayerId, actions: LLMAction
       if (path) {
         order.path = path;
         order.pathIndex = 0;
+        console.log(`✓ Unit ${unit.id} got path to (${action.target.x}, ${action.target.y}), length: ${path.length}`);
+      } else {
+        console.warn(`✗ No path found for unit ${unit.id} from (${unit.position.x}, ${unit.position.y}) to target (${action.target.x}, ${action.target.y})`);
       }
     }
 
