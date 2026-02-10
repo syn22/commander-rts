@@ -106,8 +106,8 @@ export class GameEngine {
         // Move toward own base
         const base = this.state.getBase(unit.owner);
         if (!unit.order.path || unit.order.path.length === 0) {
-          const occupied = this.state.getOccupiedPositions(unit.id);
-          const path = findPath(this.state.map, unit.position, base.position, occupied);
+          // Units can pass through each other
+          const path = findPath(this.state.map, unit.position, base.position);
           if (path) {
             unit.order.path = path;
             unit.order.pathIndex = 0;
@@ -133,9 +133,8 @@ export class GameEngine {
       if (unit.order.path && unit.order.pathIndex !== undefined) {
         this.moveUnitAlongPath(unit);
       } else if (unit.order.target) {
-        // Compute path if we don't have one, avoiding occupied tiles
-        const occupied = this.state.getOccupiedPositions(unit.id);
-        const path = findPath(this.state.map, unit.position, unit.order.target, occupied);
+        // Compute path if we don't have one (units can pass through each other)
+        const path = findPath(this.state.map, unit.position, unit.order.target);
         if (path && path.length > 0) {
           unit.order.path = path;
           unit.order.pathIndex = 0;
@@ -168,25 +167,17 @@ export class GameEngine {
 
     while (unit.moveProgress >= 1 && unit.order.pathIndex! < path.length) {
       const nextPos = path[unit.order.pathIndex!];
+      const isLastStep = unit.order.pathIndex! === path.length - 1;
 
-      // Check if the next tile is occupied by another unit
-      if (this.state.isTileOccupied(nextPos.x, nextPos.y, unit.id)) {
-        // Tile is blocked — wait this tick (don't consume moveProgress)
-        unit.moveProgress = 0;
-        unit.state = UnitState.MOVING;
-
-        // Recompute path around obstacles every few ticks to avoid permanent deadlock
-        if (this.state.tick % 5 === 0 && unit.order.target) {
-          const occupied = this.state.getOccupiedPositions(unit.id);
-          const newPath = findPath(this.state.map, unit.position, unit.order.target, occupied);
-          if (newPath && newPath.length > 0) {
-            unit.order.path = newPath;
-            unit.order.pathIndex = 0;
-          }
-        }
+      // Only block if this is the final destination AND it's occupied
+      if (isLastStep && this.state.isTileOccupied(nextPos.x, nextPos.y, unit.id)) {
+        // Final destination is occupied - stop here (one tile before)
+        unit.clearOrder();
+        unit.state = UnitState.IDLE;
         break;
       }
 
+      // Units can pass through each other during movement
       unit.position = { ...nextPos };
       unit.order.pathIndex!++;
       unit.moveProgress -= 1;
@@ -251,8 +242,8 @@ export class GameEngine {
           unit.state = UnitState.MOVING;
           // Recompute path if needed
           if (unit.order.target && (!unit.order.path || unit.order.pathIndex! >= unit.order.path.length)) {
-            const occupied = this.state.getOccupiedPositions(unit.id);
-            const path = findPath(this.state.map, unit.position, unit.order.target, occupied);
+            // Units can pass through each other
+            const path = findPath(this.state.map, unit.position, unit.order.target);
             if (path) {
               unit.order.path = path;
               unit.order.pathIndex = 0;

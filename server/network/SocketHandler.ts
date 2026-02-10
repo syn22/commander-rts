@@ -428,10 +428,10 @@ function executeActions(engine: GameEngine, player: PlayerId, actions: LLMAction
       target: action.target,
     };
 
-    // Compute path for move/attack_move (avoid occupied tiles)
+    // Compute path for move/attack_move (units can pass through each other)
     if ((action.type === ActionType.MOVE || action.type === ActionType.ATTACK_MOVE) && action.target) {
-      const occupied = engine.state.getOccupiedPositions(unit.id);
-      const path = findPath(engine.state.map, unit.position, action.target, occupied);
+      // Don't pass occupied positions - allow units to path through friendlies
+      const path = findPath(engine.state.map, unit.position, action.target);
       if (path) {
         order.path = path;
         order.pathIndex = 0;
