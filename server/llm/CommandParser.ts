@@ -47,8 +47,8 @@ export async function parseCommand(
     const client = getClient();
 
     const message = await client.messages.create({
-      model: 'claude-sonnet-4-20250514', // More reliable JSON formatting
-      max_tokens: 2048,
+      model: 'claude-3-5-sonnet-20241022', // Fast middle ground between Haiku and Sonnet 4
+      max_tokens: 1536,
       system,
       messages: [{ role: 'user', content: user }],
       temperature: 0, // Deterministic for consistent JSON formatting
