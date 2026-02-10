@@ -535,8 +535,8 @@ function renderLoop(): void {
 
 renderLoop();
 
-// Start on lobby screen
-showScreen('lobby');
+// Start on landing page
+showScreen('landing');
 
 // Load saved name from localStorage
 const savedName = localStorage.getItem('commander_rts_name');
