@@ -46,5 +46,6 @@ httpServer.listen(PORT, () => {
   console.log(`  Commander RTS Server`);
   console.log(`  Running on http://localhost:${PORT}`);
   console.log(`  Serving client from: ${clientDistPath}`);
+  console.log(`  ANTHROPIC_API_KEY: ${process.env.ANTHROPIC_API_KEY ? 'SET (' + process.env.ANTHROPIC_API_KEY.substring(0, 10) + '...)' : 'NOT SET'}`);
   console.log(`====================================\n`);
 });
