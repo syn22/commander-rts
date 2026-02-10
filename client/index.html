@@ -180,19 +180,26 @@
     /* ===== LOBBY SCREEN ===== */
     #lobby-screen {
       display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
       height: 100vh;
       padding: 20px;
       background: #0a0a0f;
+      position: relative;
     }
 
     #lobby-screen.active {
       display: flex;
+      gap: 40px;
+      align-items: center;
+      justify-content: center;
     }
 
     #lobby-screen.hidden { display: none; }
+
+    #lobby-main-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
 
     #lobby-title {
       font-size: 64px;
@@ -288,8 +295,10 @@
 
     /* Leaderboard */
     #leaderboard-section {
-      max-width: 700px;
-      margin-top: 32px;
+      width: 320px;
+      align-self: stretch;
+      display: flex;
+      flex-direction: column;
     }
 
     #leaderboard-title {
@@ -307,7 +316,7 @@
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: 8px;
       padding: 12px;
-      max-height: 200px;
+      flex: 1;
       overflow-y: auto;
     }
 
@@ -1285,54 +1294,56 @@
 
   <!-- ===== LOBBY SCREEN ===== -->
   <div id="lobby-screen">
-    <h1 id="lobby-title">COMMANDER RTS</h1>
-    <p id="lobby-subtitle">Command your army with natural language</p>
+    <div id="lobby-main-content">
+      <h1 id="lobby-title">COMMANDER RTS</h1>
+      <p id="lobby-subtitle">Command your army with natural language</p>
 
-    <div id="name-section">
-      <label for="player-name-input">Your Name:</label>
-      <input type="text" id="player-name-input" placeholder="Enter your name..." maxlength="20" />
-    </div>
-
-    <!-- Unit types and objective -->
-    <div id="game-intro">
-      <div id="objective-box">
-        <div class="objective-title">🎯 Objective</div>
-        <div class="objective-text">Destroy enemy base or eliminate all their units</div>
+      <div id="name-section">
+        <label for="player-name-input">Your Name:</label>
+        <input type="text" id="player-name-input" placeholder="Enter your name..." maxlength="20" />
       </div>
 
-      <div id="units-grid">
-        <div class="unit-card">
-          <div class="unit-icon">⚔️</div>
-          <div class="unit-name">Footman</div>
-          <div class="unit-desc">Balanced damage and HP</div>
+      <!-- Unit types and objective -->
+      <div id="game-intro">
+        <div id="objective-box">
+          <div class="objective-title">🎯 Objective</div>
+          <div class="objective-text">Destroy enemy base or eliminate all their units</div>
         </div>
-        <div class="unit-card">
-          <div class="unit-icon">🏹</div>
-          <div class="unit-name">Archer</div>
-          <div class="unit-desc">Long range, low HP</div>
-        </div>
-        <div class="unit-card">
-          <div class="unit-icon">🐴</div>
-          <div class="unit-name">Cavalry</div>
-          <div class="unit-desc">Fast speed, flanking</div>
-        </div>
-        <div class="unit-card">
-          <div class="unit-icon">🎯</div>
-          <div class="unit-name">Catapult</div>
-          <div class="unit-desc">High damage vs bases</div>
+
+        <div id="units-grid">
+          <div class="unit-card">
+            <div class="unit-icon">⚔️</div>
+            <div class="unit-name">Footman</div>
+            <div class="unit-desc">Balanced damage and HP</div>
+          </div>
+          <div class="unit-card">
+            <div class="unit-icon">🏹</div>
+            <div class="unit-name">Archer</div>
+            <div class="unit-desc">Long range, low HP</div>
+          </div>
+          <div class="unit-card">
+            <div class="unit-icon">🐴</div>
+            <div class="unit-name">Cavalry</div>
+            <div class="unit-desc">Fast speed, flanking</div>
+          </div>
+          <div class="unit-card">
+            <div class="unit-icon">🎯</div>
+            <div class="unit-name">Catapult</div>
+            <div class="unit-desc">High damage vs bases</div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div id="mode-buttons">
-      <button class="mode-btn" id="btn-singleplayer">
-        <div class="mode-title">Single Player</div>
-        <div class="mode-desc">Practice against AI (half damage)</div>
-      </button>
-      <button class="mode-btn" id="btn-multiplayer">
-        <div class="mode-title">Multiplayer</div>
-        <div class="mode-desc">Create or join a lobby</div>
-      </button>
+      <div id="mode-buttons">
+        <button class="mode-btn" id="btn-singleplayer">
+          <div class="mode-title">Single Player</div>
+          <div class="mode-desc">Practice against AI (half damage)</div>
+        </button>
+        <button class="mode-btn" id="btn-multiplayer">
+          <div class="mode-title">Multiplayer</div>
+          <div class="mode-desc">Create or join a lobby</div>
+        </button>
+      </div>
     </div>
 
     <!-- Leaderboard -->
