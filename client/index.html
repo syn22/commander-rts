@@ -583,6 +583,54 @@
       background: #0f3460;
     }
 
+    /* Model selector */
+    #model-selector-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      padding: 8px 10px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 6px;
+      border: 1px solid #444;
+    }
+
+    #model-selector-label {
+      font-size: 12px;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    #model-selector {
+      flex: 1;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      border: 1px solid #555;
+      border-radius: 4px;
+      padding: 6px 10px;
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+      outline: none;
+    }
+
+    #model-selector:hover {
+      border-color: #e94560;
+    }
+
+    #model-selector:focus {
+      border-color: #e94560;
+      box-shadow: 0 0 0 2px rgba(233, 69, 96, 0.2);
+    }
+
+    #model-info {
+      font-size: 11px;
+      color: #4caf50;
+      white-space: nowrap;
+      font-weight: bold;
+    }
+
     #command-input {
       width: 100%;
       background: #1a1a2e;
@@ -984,6 +1032,15 @@
       <div id="chat-log"></div>
 
       <div id="command-area">
+        <div id="model-selector-container">
+          <span id="model-selector-label">Model:</span>
+          <select id="model-selector">
+            <option value="haiku">Haiku (Ultra Fast ~200ms)</option>
+            <option value="sonnet-3.5" selected>Sonnet 3.5 (Balanced ~500ms)</option>
+            <option value="sonnet-4">Sonnet 4 (Reliable ~1500ms)</option>
+          </select>
+          <span id="model-info">~500ms</span>
+        </div>
         <input type="text" id="command-input" placeholder="Type a command... (e.g., 'send archers north')" autocomplete="off" />
         <div id="command-actions">
           <span id="pending-indicator"></span>

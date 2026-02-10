@@ -40,14 +40,23 @@ export async function parseCommand(
   fogMap: FogState[][],
   mapTiles: TileType[][],
   scroll?: string,
+  model?: string,
 ): Promise<LLMResponse> {
   const { system, user } = buildPrompt(player, units, bases, fogMap, mapTiles, command, scroll);
+
+  // Map model selector values to actual Claude model names
+  const modelMap: Record<string, string> = {
+    'haiku': 'claude-3-5-haiku-20241022',
+    'sonnet-3.5': 'claude-3-5-sonnet-20241022',
+    'sonnet-4': 'claude-sonnet-4-20250514',
+  };
+  const selectedModel = modelMap[model || 'sonnet-3.5'] || 'claude-3-5-sonnet-20241022';
 
   try {
     const client = getClient();
 
     const message = await client.messages.create({
-      model: 'claude-3-5-sonnet-20241022', // Fast middle ground between Haiku and Sonnet 4
+      model: selectedModel,
       max_tokens: 1536,
       system,
       messages: [{ role: 'user', content: user }],

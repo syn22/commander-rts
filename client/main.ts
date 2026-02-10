@@ -86,7 +86,11 @@ const opponentNameEl = document.getElementById('opponent-name')!;
 // Debug panel
 const debugPanel = document.getElementById('debug-panel')!;
 const debugToggleBtn = document.getElementById('debug-toggle-btn')!;
-const debugContent = document.getElementById('debug-content')!
+const debugContent = document.getElementById('debug-content')!;
+
+// Model selector
+const modelSelector = document.getElementById('model-selector') as HTMLSelectElement;
+const modelInfo = document.getElementById('model-info')!;
 
 // ============================================================
 // Screen management
@@ -469,12 +473,32 @@ socket.setOnOpponentDisconnected((data) => {
   });
 });
 
+// Model selector — update info text and save to localStorage
+modelSelector.addEventListener('change', () => {
+  const model = modelSelector.value;
+  const infoMap: Record<string, string> = {
+    'haiku': '~200ms',
+    'sonnet-3.5': '~500ms',
+    'sonnet-4': '~1500ms'
+  };
+  modelInfo.textContent = infoMap[model] || '~500ms';
+  localStorage.setItem('selected-model', model);
+});
+
+// Load saved model preference
+const savedModel = localStorage.getItem('selected-model');
+if (savedModel && ['haiku', 'sonnet-3.5', 'sonnet-4'].includes(savedModel)) {
+  modelSelector.value = savedModel;
+  modelSelector.dispatchEvent(new Event('change'));
+}
+
 // Command input — supports rapid-fire commands
 commandInput.setOnSubmit((command: string) => {
   lastCommand = command; // Store for debug panel
   commandInput.incrementPending();
   addChatMessage(command, 'player-cmd');
-  socket.sendCommand(command, scrollEditor.getScroll());
+  const selectedModel = modelSelector.value;
+  socket.sendCommand(command, scrollEditor.getScroll(), selectedModel);
 });
 
 // ============================================================

@@ -243,7 +243,7 @@ export function setupSocketHandlers(io: Server): void {
     // In-game commands (works for both modes)
     // ==========================================
 
-    socket.on('send_command', async (data: { command: string; scroll?: string }) => {
+    socket.on('send_command', async (data: { command: string; scroll?: string; model?: string }) => {
       const sess = sessions.get(socket.id);
       if (!sess || !sess.playerId) return;
 
@@ -251,8 +251,8 @@ export function setupSocketHandlers(io: Server): void {
       if (!engine) return;
 
       const player = sess.playerId;
-      const { command, scroll } = data;
-      console.log(`[${socket.id}] P${player} Command: "${command}"`);
+      const { command, scroll, model } = data;
+      console.log(`[${socket.id}] P${player} Command: "${command}" (Model: ${model || 'default'})`);
 
       // Get current fog for the player
       const fogMap = engine.state.fog.computeFog(
@@ -271,6 +271,7 @@ export function setupSocketHandlers(io: Server): void {
           fogMap,
           engine.state.map,
           scroll,
+          model,
         );
 
         console.log(`[${socket.id}] LLM response: ${response.response}`);

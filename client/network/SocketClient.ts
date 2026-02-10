@@ -89,8 +89,8 @@ export class SocketClient {
   setOnOpponentDisconnected(cb: (data: { message: string }) => void): void { this.onOpponentDisconnected = cb; }
 
   // Game actions
-  sendCommand(command: string, scroll?: string): void {
-    this.socket.emit('send_command', { command, scroll });
+  sendCommand(command: string, scroll?: string, model?: string): void {
+    this.socket.emit('send_command', { command, scroll, model });
   }
 
   requestState(): void {
