@@ -46,11 +46,11 @@ export async function parseCommand(
 
   // Map model selector values to actual Claude model names
   const modelMap: Record<string, string> = {
-    'haiku': 'claude-3-5-haiku-20241022',
-    'sonnet-3.5': 'claude-3-7-sonnet-20250219', // Latest Sonnet 3.5
-    'sonnet-4': 'claude-sonnet-4-20250514',
+    'haiku': 'claude-haiku-4-5-20251001', // Haiku 4.5
+    'sonnet-3.5': 'claude-sonnet-4-5-20250929', // Sonnet 4.5
+    'sonnet-4': 'claude-sonnet-4-5-20250929', // Sonnet 4.5 (same as above)
   };
-  const selectedModel = modelMap[model || 'sonnet-3.5'] || 'claude-3-7-sonnet-20250219';
+  const selectedModel = modelMap[model || 'sonnet-3.5'] || 'claude-sonnet-4-5-20250929';
 
   try {
     const client = getClient();
