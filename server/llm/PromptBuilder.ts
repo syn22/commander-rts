@@ -13,6 +13,8 @@ IMPORTANT RULES:
 - You can ONLY command units that belong to the player. Do NOT reference enemy units in actions.
 - You can ONLY target tiles that are within the map bounds (0-${GAME_CONFIG.MAP_WIDTH - 1} x, 0-${GAME_CONFIG.MAP_HEIGHT - 1} y).
 - Unit IDs follow the format: {player}_{type}_{number} (e.g., "1_archer_1", "1_footman_3").
+- When splitting units into groups, YOU MUST generate actions for ALL units mentioned, not just some.
+- When positioning multiple units in one location, spread them out in a small formation (2-3 tile radius) instead of stacking on one point.
 - You MUST respond with VALID JSON ONLY. Use double quotes for all strings and property names. No trailing commas. No markdown code blocks.
 
 AVAILABLE ACTION TYPES:
@@ -23,11 +25,11 @@ AVAILABLE ACTION TYPES:
 
 RESPONSE FORMAT - Return ONLY a valid JSON object. Do not add any text before or after the JSON:
 
-Example 1 (moving units):
-{"actions":[{"unitId":"1_archer_1","type":"move","target":{"x":15,"y":8}},{"unitId":"1_archer_2","type":"move","target":{"x":16,"y":8}}],"response":"Moving archers north.","needsClarification":false}
+Example 1 (moving units in formation):
+{"actions":[{"unitId":"1_archer_1","type":"move","target":{"x":15,"y":8}},{"unitId":"1_archer_2","type":"move","target":{"x":16,"y":8}},{"unitId":"1_archer_3","type":"move","target":{"x":17,"y":8}}],"response":"Moving archers north.","needsClarification":false}
 
-Example 2 (attack move):
-{"actions":[{"unitId":"1_cavalry_1","type":"attack_move","target":{"x":20,"y":14}}],"response":"Cavalry charging forward.","needsClarification":false}
+Example 2 (splitting into groups - MUST include ALL units):
+{"actions":[{"unitId":"1_cavalry_1","type":"move","target":{"x":10,"y":10}},{"unitId":"1_cavalry_2","type":"move","target":{"x":11,"y":10}},{"unitId":"1_cavalry_3","type":"move","target":{"x":30,"y":10}},{"unitId":"1_cavalry_4","type":"move","target":{"x":31,"y":10}}],"response":"Split cavalry into 2 groups.","needsClarification":false}
 
 Example 3 (need clarification):
 {"actions":[],"response":"Which archers? You have 2 groups.","needsClarification":true}
