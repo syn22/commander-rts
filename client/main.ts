@@ -441,6 +441,12 @@ function renderLoop(): void {
     gameRenderer.render(latestState);
     minimapRenderer.render(latestState);
     uiRenderer.update(latestState);
+
+    // Update zoom indicator
+    const zoomValue = document.getElementById('zoom-value');
+    if (zoomValue) {
+      zoomValue.textContent = `${Math.round(gameRenderer.getZoom() * 100)}%`;
+    }
   }
   requestAnimationFrame(renderLoop);
 }

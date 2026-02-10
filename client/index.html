@@ -756,6 +756,31 @@
       color: #f44336;
       font-weight: bold;
     }
+
+    /* Zoom controls */
+    #zoom-controls {
+      position: absolute;
+      bottom: 170px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.75);
+      padding: 8px 14px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 12px;
+      pointer-events: none;
+      text-align: right;
+    }
+
+    .zoom-label {
+      color: #4caf50;
+      font-weight: bold;
+      margin-bottom: 2px;
+    }
+
+    .zoom-hint {
+      color: #666;
+      font-size: 10px;
+    }
   </style>
 </head>
 <body>
@@ -881,6 +906,12 @@
             <div class="label">Time</div>
             <div class="value" id="hud-time">0:00</div>
           </div>
+        </div>
+
+        <!-- Zoom controls -->
+        <div id="zoom-controls">
+          <div class="zoom-label">Zoom: <span id="zoom-value">100%</span></div>
+          <div class="zoom-hint">Scroll or +/- keys | 0 to reset | Middle mouse to pan</div>
         </div>
 
         <div id="opponent-bar">

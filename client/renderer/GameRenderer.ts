@@ -99,6 +99,9 @@ export class GameRenderer {
   // Camera
   private cameraX: number = 0;
   private cameraY: number = 0;
+  private zoom: number = 1; // Zoom level (1 = default, 0.5 = zoomed out, 2 = zoomed in)
+  private minZoom: number = 0.3;
+  private maxZoom: number = 2.5;
   private isDragging: boolean = false;
   private lastMouseX: number = 0;
   private lastMouseY: number = 0;
@@ -121,12 +124,13 @@ export class GameRenderer {
     this.ctx = canvas.getContext('2d')!;
     this.resize();
 
-    // Mouse panning
+    // Mouse panning (middle mouse button only)
     canvas.addEventListener('mousedown', (e) => {
-      if (e.button === 0 || e.button === 2) {
+      if (e.button === 1) { // Middle mouse button
         this.isDragging = true;
         this.lastMouseX = e.clientX;
         this.lastMouseY = e.clientY;
+        e.preventDefault();
       }
     });
 
@@ -143,11 +147,88 @@ export class GameRenderer {
     canvas.addEventListener('mouseleave', () => { this.isDragging = false; });
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
+    // Mouse wheel zoom
+    canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+
+      // Get mouse position relative to canvas before zoom
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      // Calculate world position before zoom
+      const worldXBefore = (mouseX - this.cameraX) / this.zoom;
+      const worldYBefore = (mouseY - this.cameraY) / this.zoom;
+
+      // Apply zoom
+      const zoomDelta = e.deltaY > 0 ? 0.9 : 1.1;
+      this.zoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.zoom * zoomDelta));
+
+      // Calculate world position after zoom
+      const worldXAfter = (mouseX - this.cameraX) / this.zoom;
+      const worldYAfter = (mouseY - this.cameraY) / this.zoom;
+
+      // Adjust camera to keep mouse position stable
+      this.cameraX += (worldXAfter - worldXBefore) * this.zoom;
+      this.cameraY += (worldYAfter - worldYBefore) * this.zoom;
+    }, { passive: false });
+
+    // Keyboard shortcuts for zoom
+    window.addEventListener('keydown', (e) => {
+      // Only handle if not typing in input
+      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      if (e.key === '=' || e.key === '+') {
+        // Zoom in
+        e.preventDefault();
+        const centerX = this.canvas.width / 2;
+        const centerY = this.canvas.height / 2;
+        const worldXBefore = (centerX - this.cameraX) / this.zoom;
+        const worldYBefore = (centerY - this.cameraY) / this.zoom;
+        this.zoom = Math.min(this.maxZoom, this.zoom * 1.2);
+        const worldXAfter = (centerX - this.cameraX) / this.zoom;
+        const worldYAfter = (centerY - this.cameraY) / this.zoom;
+        this.cameraX += (worldXAfter - worldXBefore) * this.zoom;
+        this.cameraY += (worldYAfter - worldYBefore) * this.zoom;
+      } else if (e.key === '-' || e.key === '_') {
+        // Zoom out
+        e.preventDefault();
+        const centerX = this.canvas.width / 2;
+        const centerY = this.canvas.height / 2;
+        const worldXBefore = (centerX - this.cameraX) / this.zoom;
+        const worldYBefore = (centerY - this.cameraY) / this.zoom;
+        this.zoom = Math.max(this.minZoom, this.zoom * 0.8);
+        const worldXAfter = (centerX - this.cameraX) / this.zoom;
+        const worldYAfter = (centerY - this.cameraY) / this.zoom;
+        this.cameraX += (worldXAfter - worldXBefore) * this.zoom;
+        this.cameraY += (worldYAfter - worldYBefore) * this.zoom;
+      } else if (e.key === '0') {
+        // Reset zoom
+        e.preventDefault();
+        this.zoom = 1;
+        this.centerOnBase();
+      }
+    });
+
     window.addEventListener('resize', () => this.resize());
+  }
+
+  private centerOnBase(): void {
+    // Center on player's base (will be called after setPlayerId)
+    const baseX = this.myPlayerId === 1 ? 2 : 37;
+    const baseY = 14;
+    this.centerOn(baseX, baseY);
   }
 
   setPlayerId(id: PlayerId): void {
     this.myPlayerId = id;
+    this.centerOnBase();
+  }
+
+  getZoom(): number {
+    return this.zoom;
   }
 
   resize(): void {
@@ -199,6 +280,7 @@ export class GameRenderer {
 
     ctx.save();
     ctx.translate(this.cameraX, this.cameraY);
+    ctx.scale(this.zoom, this.zoom);
 
     // Layers (back to front)
     this.drawTerrain(state.mapTiles, state.fogMap);
