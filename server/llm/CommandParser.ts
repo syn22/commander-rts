@@ -47,8 +47,8 @@ export async function parseCommand(
     const client = getClient();
 
     const message = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001', // Fast for real-time gameplay
-      max_tokens: 1024,
+      model: 'claude-sonnet-4-20250514', // More reliable JSON formatting
+      max_tokens: 2048,
       system,
       messages: [{ role: 'user', content: user }],
       temperature: 0, // Deterministic for consistent JSON formatting
@@ -65,6 +65,7 @@ export async function parseCommand(
     }
 
     const rawText = textBlock.text.trim();
+    console.log('Raw LLM response (first 500 chars):', rawText.substring(0, 500));
 
     // Try to parse JSON (handle potential markdown wrapping and malformed JSON)
     let jsonText = rawText;
