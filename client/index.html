@@ -27,116 +27,149 @@
       justify-content: center;
       height: 100vh;
       padding: 40px 20px;
-      background: linear-gradient(135deg, #0f0c29 0%, #1a1a2e 50%, #24243e 100%);
+      background: #0a0a0f;
       text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #landing-page::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background:
+        radial-gradient(circle at 20% 50%, rgba(233, 69, 96, 0.15) 0%, transparent 50%),
+        radial-gradient(circle at 80% 50%, rgba(233, 69, 96, 0.1) 0%, transparent 50%);
+      pointer-events: none;
     }
 
     #landing-page.hidden { display: none; }
 
     #landing-title {
-      font-size: 72px;
-      font-weight: bold;
-      color: #e94560;
-      margin-bottom: 12px;
-      letter-spacing: 4px;
-      text-shadow: 0 0 20px rgba(233, 69, 96, 0.5);
+      font-size: 96px;
+      font-weight: 900;
+      color: #fff;
+      margin-bottom: 16px;
+      letter-spacing: -2px;
+      text-shadow: 0 0 40px rgba(233, 69, 96, 0.3);
+      position: relative;
+      z-index: 1;
     }
 
     #landing-tagline {
-      font-size: 24px;
-      color: #aaa;
+      font-size: 28px;
+      color: #888;
+      margin-bottom: 60px;
+      font-weight: 300;
+      letter-spacing: 0.5px;
+      position: relative;
+      z-index: 1;
+    }
+
+    #command-demo {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(233, 69, 96, 0.3);
+      border-radius: 12px;
+      padding: 24px 32px;
       margin-bottom: 48px;
-      font-style: italic;
+      backdrop-filter: blur(10px);
+      position: relative;
+      z-index: 1;
+      max-width: 600px;
+    }
+
+    .demo-prompt {
+      font-size: 20px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      color: #4caf50;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .prompt-symbol {
+      color: #e94560;
+      font-weight: bold;
+      font-size: 24px;
+    }
+
+    .demo-text {
+      color: #ddd;
     }
 
     #landing-description {
-      max-width: 700px;
-      font-size: 16px;
-      line-height: 1.8;
-      color: #ccc;
-      margin-bottom: 40px;
-    }
-
-    #landing-description strong {
-      color: #e94560;
-    }
-
-    #landing-features {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 20px;
-      max-width: 800px;
-      width: 100%;
+      max-width: 600px;
+      font-size: 18px;
+      line-height: 1.6;
+      color: #aaa;
       margin-bottom: 48px;
-    }
-
-    .feature-box {
-      background: rgba(22, 33, 62, 0.6);
-      border: 1px solid #333;
-      border-radius: 8px;
-      padding: 20px;
-      transition: transform 0.2s, border-color 0.2s;
-    }
-
-    .feature-box:hover {
-      transform: translateY(-4px);
-      border-color: #e94560;
-    }
-
-    .feature-icon {
-      font-size: 32px;
-      margin-bottom: 8px;
-    }
-
-    .feature-title {
-      font-size: 16px;
-      font-weight: bold;
-      color: #e94560;
-      margin-bottom: 8px;
-    }
-
-    .feature-desc {
-      font-size: 13px;
-      color: #888;
-      line-height: 1.5;
+      position: relative;
+      z-index: 1;
     }
 
     #landing-cta {
       display: flex;
-      gap: 20px;
+      gap: 16px;
       justify-content: center;
       align-items: center;
+      margin-bottom: 60px;
+      position: relative;
+      z-index: 1;
     }
 
     .cta-btn {
-      padding: 18px 48px;
-      border: 2px solid #e94560;
-      border-radius: 8px;
+      padding: 20px 56px;
+      border: none;
+      border-radius: 6px;
       background: #e94560;
       color: white;
-      font-size: 20px;
-      font-weight: bold;
+      font-size: 18px;
+      font-weight: 600;
       cursor: pointer;
-      transition: all 0.3s;
-      text-transform: uppercase;
-      letter-spacing: 1px;
+      transition: all 0.2s;
+      letter-spacing: 0.5px;
     }
 
     .cta-btn:hover {
-      background: #c23152;
-      border-color: #c23152;
-      transform: scale(1.05);
-      box-shadow: 0 0 20px rgba(233, 69, 96, 0.5);
+      background: #ff5571;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(233, 69, 96, 0.4);
     }
 
     .cta-btn.secondary {
       background: transparent;
-      color: #e94560;
+      border: 1px solid #555;
+      color: #ddd;
     }
 
     .cta-btn.secondary:hover {
-      background: rgba(233, 69, 96, 0.1);
-      border-color: #e94560;
+      background: rgba(255, 255, 255, 0.05);
+      border-color: #777;
+      box-shadow: none;
+    }
+
+    #landing-features {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+      position: relative;
+      z-index: 1;
+    }
+
+    .feature-tag {
+      padding: 8px 20px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      color: #888;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 500;
     }
 
     /* ===== LOBBY SCREEN ===== */
@@ -1066,41 +1099,31 @@
   <!-- ===== LANDING PAGE ===== -->
   <div id="landing-page">
     <h1 id="landing-title">COMMANDER RTS</h1>
-    <p id="landing-tagline">Command your army with natural language. No clicking. Pure strategy.</p>
+    <p id="landing-tagline">Type your orders. Watch your army execute.</p>
+
+    <div id="command-demo">
+      <div class="demo-prompt">
+        <span class="prompt-symbol">></span>
+        <span class="demo-text">"5 cavalry flank left, archers hold center"</span>
+      </div>
+    </div>
 
     <div id="landing-description">
       <p>
-        Experience real-time strategy like never before.
-        Issue commands in plain English—your AI interprets and executes them instantly.
-        Choose your LLM model for different strategic styles. Command. Conquer. Dominate.
+        No clicking. No micromanagement. Pure tactical command.<br/>
+        Just type what you want—your army does the rest.
       </p>
     </div>
 
-    <div id="landing-features">
-      <div class="feature-box">
-        <div class="feature-icon">💬</div>
-        <div class="feature-title">Natural Language</div>
-        <div class="feature-desc">Type commands like "5 cavalry charge left flank"</div>
-      </div>
-      <div class="feature-box">
-        <div class="feature-icon">🧠</div>
-        <div class="feature-title">AI Models</div>
-        <div class="feature-desc">Choose between speed (Haiku) or sophistication (Sonnet)</div>
-      </div>
-      <div class="feature-box">
-        <div class="feature-icon">⚔️</div>
-        <div class="feature-title">Real-Time Combat</div>
-        <div class="feature-desc">Fog of war, formations, and tactical positioning</div>
-      </div>
-      <div class="feature-box">
-        <div class="feature-icon">🌐</div>
-        <div class="feature-title">Multiplayer</div>
-        <div class="feature-desc">Battle other commanders in strategic warfare</div>
-      </div>
+    <div id="landing-cta">
+      <button class="cta-btn" id="landing-play-btn">Play Now</button>
+      <button class="cta-btn secondary" id="landing-demo-btn">See Example</button>
     </div>
 
-    <div id="landing-cta">
-      <button class="cta-btn" id="landing-play-btn">Enter Battle</button>
+    <div id="landing-features">
+      <span class="feature-tag">Real-time battles</span>
+      <span class="feature-tag">Multiplayer</span>
+      <span class="feature-tag">Free to play</span>
     </div>
   </div>
 

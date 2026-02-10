@@ -93,8 +93,9 @@ const debugContent = document.getElementById('debug-content')!;
 const modelSelector = document.getElementById('model-selector') as HTMLSelectElement;
 const modelInfo = document.getElementById('model-info')!;
 
-// Landing page button
+// Landing page buttons
 const landingPlayBtn = document.getElementById('landing-play-btn')!;
+const landingDemoBtn = document.getElementById('landing-demo-btn')!;
 
 // ============================================================
 // Screen management
@@ -194,8 +195,14 @@ function clearChatLog(): void {
 // Lobby UI Logic
 // ============================================================
 
-// Landing page - Enter Battle button
+// Landing page - Play Now button
 landingPlayBtn.addEventListener('click', () => {
+  showScreen('lobby');
+  lobbyScreen.classList.add('active');
+});
+
+// Landing page - See Example button (for now, same as Play Now)
+landingDemoBtn.addEventListener('click', () => {
   showScreen('lobby');
   lobbyScreen.classList.add('active');
 });
