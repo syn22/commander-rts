@@ -13,8 +13,12 @@ let anthropicClient: Anthropic | null = null;
 
 function getClient(): Anthropic {
   if (!anthropicClient) {
-    // Trim whitespace from API key to prevent issues with copy-paste
-    const apiKey = (process.env.ANTHROPIC_API_KEY || '').trim();
+    // Trim whitespace and remove any leading = or spaces from API key
+    let apiKey = (process.env.ANTHROPIC_API_KEY || '').trim();
+    // Remove leading = if present (Railway sometimes adds this)
+    if (apiKey.startsWith('=')) {
+      apiKey = apiKey.substring(1).trim();
+    }
     if (!apiKey || apiKey === 'your-api-key-here') {
       throw new Error('ANTHROPIC_API_KEY environment variable is not set');
     }
