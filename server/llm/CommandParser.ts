@@ -47,8 +47,8 @@ export async function parseCommand(
     const client = getClient();
 
     const message = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1024,
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 2048,
       system,
       messages: [{ role: 'user', content: user }],
     });
@@ -65,13 +65,41 @@ export async function parseCommand(
 
     const rawText = textBlock.text.trim();
 
-    // Try to parse JSON (handle potential markdown wrapping)
+    // Try to parse JSON (handle potential markdown wrapping and malformed JSON)
     let jsonText = rawText;
+
+    // Remove markdown code blocks
     if (jsonText.startsWith('```')) {
       jsonText = jsonText.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
     }
 
-    const parsed = JSON.parse(jsonText) as LLMResponse;
+    // Try to extract JSON if there's other text
+    const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      jsonText = jsonMatch[0];
+    }
+
+    // Clean up common JSON formatting issues
+    jsonText = jsonText
+      .replace(/,(\s*[}\]])/g, '$1') // Remove trailing commas
+      .replace(/'/g, '"') // Replace single quotes with double quotes
+      .replace(/([{,]\s*)(\w+):/g, '$1"$2":') // Quote unquoted keys
+      .trim();
+
+    let parsed: LLMResponse;
+    try {
+      parsed = JSON.parse(jsonText) as LLMResponse;
+    } catch (parseError) {
+      console.error('JSON parse failed, raw text:', rawText);
+      console.error('Cleaned JSON text:', jsonText);
+      console.error('Parse error:', parseError);
+
+      return {
+        actions: [],
+        response: 'Failed to parse AI response. The command format may be too complex.',
+        needsClarification: false,
+      };
+    }
 
     // Validate actions
     const playerUnits = units.filter(u => u.owner === player && u.alive);

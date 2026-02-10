@@ -13,7 +13,7 @@ IMPORTANT RULES:
 - You can ONLY command units that belong to the player. Do NOT reference enemy units in actions.
 - You can ONLY target tiles that are within the map bounds (0-${GAME_CONFIG.MAP_WIDTH - 1} x, 0-${GAME_CONFIG.MAP_HEIGHT - 1} y).
 - Unit IDs follow the format: {player}_{type}_{number} (e.g., "1_archer_1", "1_footman_3").
-- You MUST respond with valid JSON only. No markdown, no code blocks.
+- You MUST respond with VALID JSON ONLY. Use double quotes for all strings and property names. No trailing commas. No markdown code blocks.
 
 AVAILABLE ACTION TYPES:
 - "move" — Move to a position. Requires "target": {"x": number, "y": number}
@@ -21,10 +21,10 @@ AVAILABLE ACTION TYPES:
 - "hold" — Stop moving, stay and fight anything in range. No target needed.
 - "retreat" — Move back toward own base. No target needed.
 
-RESPONSE FORMAT (JSON only):
+RESPONSE FORMAT - Return ONLY this JSON structure with proper syntax:
 {
   "actions": [
-    { "unitId": "1_archer_1", "type": "move", "target": { "x": 15, "y": 8 } }
+    {"unitId": "1_archer_1", "type": "move", "target": {"x": 15, "y": 8}}
   ],
   "response": "Brief description of what you're doing.",
   "needsClarification": false
