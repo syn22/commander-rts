@@ -184,8 +184,8 @@ export class GameEngine {
       unit.state = UnitState.MOVING;
     }
 
-    // Check if we've reached the end
-    if (unit.order.pathIndex! >= path.length) {
+    // Check if we've reached the end (only if order still exists)
+    if (unit.order && unit.order.pathIndex! >= path.length) {
       unit.clearOrder();
     }
   }
