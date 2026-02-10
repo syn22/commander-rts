@@ -33,20 +33,25 @@
       overflow: hidden;
     }
 
-    #landing-page::before {
-      content: '';
+    #landing-page.hidden { display: none; }
+
+    #landing-canvas {
       position: absolute;
       top: 0;
       left: 0;
-      right: 0;
-      bottom: 0;
-      background:
-        radial-gradient(circle at 20% 50%, rgba(233, 69, 96, 0.15) 0%, transparent 50%),
-        radial-gradient(circle at 80% 50%, rgba(233, 69, 96, 0.1) 0%, transparent 50%);
-      pointer-events: none;
+      width: 100%;
+      height: 100%;
+      opacity: 0.15;
+      z-index: 0;
     }
 
-    #landing-page.hidden { display: none; }
+    #landing-content {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
 
     #landing-title {
       font-size: 96px;
@@ -1098,32 +1103,35 @@
 <body>
   <!-- ===== LANDING PAGE ===== -->
   <div id="landing-page">
-    <h1 id="landing-title">COMMANDER RTS</h1>
-    <p id="landing-tagline">Type your orders. Watch your army execute.</p>
+    <canvas id="landing-canvas"></canvas>
 
-    <div id="command-demo">
-      <div class="demo-prompt">
-        <span class="prompt-symbol">></span>
-        <span class="demo-text">"5 cavalry flank left, archers hold center"</span>
+    <div id="landing-content">
+      <h1 id="landing-title">COMMANDER RTS</h1>
+      <p id="landing-tagline">Type your orders. Watch your army execute.</p>
+
+      <div id="command-demo">
+        <div class="demo-prompt">
+          <span class="prompt-symbol">></span>
+          <span class="demo-text">"5 cavalry flank left, archers hold center"</span>
+        </div>
       </div>
-    </div>
 
-    <div id="landing-description">
-      <p>
-        No clicking. No micromanagement. Pure tactical command.<br/>
-        Just type what you want—your army does the rest.
-      </p>
-    </div>
+      <div id="landing-description">
+        <p>
+          No clicking. No micromanagement. Pure tactical command.<br/>
+          Just type what you want—your army does the rest.
+        </p>
+      </div>
 
-    <div id="landing-cta">
-      <button class="cta-btn" id="landing-play-btn">Play Now</button>
-      <button class="cta-btn secondary" id="landing-demo-btn">See Example</button>
-    </div>
+      <div id="landing-cta">
+        <button class="cta-btn" id="landing-play-btn">Play Now</button>
+      </div>
 
-    <div id="landing-features">
-      <span class="feature-tag">Real-time battles</span>
-      <span class="feature-tag">Multiplayer</span>
-      <span class="feature-tag">Free to play</span>
+      <div id="landing-features">
+        <span class="feature-tag">Real-time battles</span>
+        <span class="feature-tag">Multiplayer</span>
+        <span class="feature-tag">Fast or complex commands—your style</span>
+      </div>
     </div>
   </div>
 

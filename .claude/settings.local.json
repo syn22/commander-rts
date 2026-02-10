@@ -8,7 +8,8 @@
       "Bash(gh pr create:*)",
       "Bash(npm run build:*)",
       "Bash(npm install:*)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(npm run dev:*)"
     ]
   }
 }

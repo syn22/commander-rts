@@ -4,6 +4,7 @@ import { MinimapRenderer } from './renderer/MinimapRenderer.js';
 import { UIRenderer } from './renderer/UIRenderer.js';
 import { CommandInput } from './input/CommandInput.js';
 import { ScrollEditor } from './input/ScrollEditor.js';
+import { LandingAnimation } from './landing-animation.js';
 import { GameStateUpdate, PlayerId, GameMode, LobbyInfo } from '../shared/types.js';
 
 // ============================================================
@@ -25,11 +26,13 @@ let joiningLobbyId: string | null = null;  // tracks which lobby we're joining (
 const socket = new SocketClient();
 const gameCanvas = document.getElementById('game-canvas') as HTMLCanvasElement;
 const minimapCanvas = document.getElementById('minimap-canvas') as HTMLCanvasElement;
+const landingCanvas = document.getElementById('landing-canvas') as HTMLCanvasElement;
 const gameRenderer = new GameRenderer(gameCanvas);
 const minimapRenderer = new MinimapRenderer(minimapCanvas);
 const uiRenderer = new UIRenderer();
 const commandInput = new CommandInput();
 const scrollEditor = new ScrollEditor();
+const landingAnimation = new LandingAnimation(landingCanvas);
 
 // ============================================================
 // DOM Elements
@@ -95,7 +98,6 @@ const modelInfo = document.getElementById('model-info')!;
 
 // Landing page buttons
 const landingPlayBtn = document.getElementById('landing-play-btn')!;
-const landingDemoBtn = document.getElementById('landing-demo-btn')!;
 
 // ============================================================
 // Screen management
@@ -197,12 +199,6 @@ function clearChatLog(): void {
 
 // Landing page - Play Now button
 landingPlayBtn.addEventListener('click', () => {
-  showScreen('lobby');
-  lobbyScreen.classList.add('active');
-});
-
-// Landing page - See Example button (for now, same as Play Now)
-landingDemoBtn.addEventListener('click', () => {
   showScreen('lobby');
   lobbyScreen.classList.add('active');
 });
