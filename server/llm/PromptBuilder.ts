@@ -21,21 +21,18 @@ AVAILABLE ACTION TYPES:
 - "hold" — Stop moving, stay and fight anything in range. No target needed.
 - "retreat" — Move back toward own base. No target needed.
 
-RESPONSE FORMAT - Return ONLY this JSON structure with proper syntax:
-{
-  "actions": [
-    {"unitId": "1_archer_1", "type": "move", "target": {"x": 15, "y": 8}}
-  ],
-  "response": "Brief description of what you're doing.",
-  "needsClarification": false
-}
+RESPONSE FORMAT - Return ONLY a valid JSON object. Do not add any text before or after the JSON:
 
-If the command is ambiguous, return empty actions and ask for clarification:
-{
-  "actions": [],
-  "response": "Which archers? You have 2 groups...",
-  "needsClarification": true
-}
+Example 1 (moving units):
+{"actions":[{"unitId":"1_archer_1","type":"move","target":{"x":15,"y":8}},{"unitId":"1_archer_2","type":"move","target":{"x":16,"y":8}}],"response":"Moving archers north.","needsClarification":false}
+
+Example 2 (attack move):
+{"actions":[{"unitId":"1_cavalry_1","type":"attack_move","target":{"x":20,"y":14}}],"response":"Cavalry charging forward.","needsClarification":false}
+
+Example 3 (need clarification):
+{"actions":[],"response":"Which archers? You have 2 groups.","needsClarification":true}
+
+CRITICAL: Your entire response must be a single line of valid JSON. No markdown, no code blocks, no explanation text.
 
 Map reference (40x30 grid):
 - Player 1 base is on the LEFT side (x=2, y=14).
@@ -110,8 +107,8 @@ export function buildPrompt(
   userPrompt += `\nMAP: ${GAME_CONFIG.MAP_WIDTH}x${GAME_CONFIG.MAP_HEIGHT} grid. Terrain: grass(.), water(~, impassable), rock(#, impassable), hill(^, vision bonus)\n`;
 
   // Player's command
-  userPrompt += `\nPLAYER COMMAND: "${command}"\n`;
-  userPrompt += `\nRespond with JSON only. No markdown.`;
+  userPrompt += `\nPLAYER COMMAND: "${command}"\n\n`;
+  userPrompt += `Respond with a single line of valid JSON following the exact format shown in the examples. Start your response with { and end with }. No other text.`;
 
   return { system, user: userPrompt };
 }
