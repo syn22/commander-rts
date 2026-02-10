@@ -5,6 +5,7 @@ import { findPath } from '../game/Pathfinding.js';
 import { ActionType, PlayerId, LLMAction, GameStateUpdate, GameMode, LobbyInfo, LobbyJoinResult } from '../../shared/types.js';
 import { Unit, UnitOrder } from '../game/Unit.js';
 import { randomBytes } from 'crypto';
+import { LeaderboardManager } from '../leaderboard/LeaderboardManager.js';
 
 //
 // Socket.io event handler — lobby + singleplayer support
@@ -34,6 +35,7 @@ interface PlayerSession {
 // Track all active sessions and lobbies
 const sessions = new Map<string, PlayerSession>();
 const lobbies = new Map<string, Lobby>();
+const leaderboard = new LeaderboardManager();
 
 function generateLobbyId(): string {
   return randomBytes(4).toString('hex');
@@ -333,6 +335,18 @@ export function setupSocketHandlers(io: Server): void {
         console.log(`[${socket.id}] Singleplayer game restarted`);
       }
       // For multiplayer, client should go back to lobby via 'leave_lobby'
+    });
+
+    // Submit victory to leaderboard
+    socket.on('submit_victory', (data: { playerName: string; timeSeconds: number; gameMode: GameMode }) => {
+      leaderboard.addEntry(data.playerName, data.timeSeconds, data.gameMode);
+      console.log(`[${socket.id}] Victory recorded: ${data.playerName} - ${data.timeSeconds}s (${data.gameMode})`);
+    });
+
+    // Get leaderboard (only singleplayer)
+    socket.on('get_leaderboard', () => {
+      const top10 = leaderboard.getTopEntries(10, 'singleplayer');
+      socket.emit('leaderboard_data', top10);
     });
 
     //

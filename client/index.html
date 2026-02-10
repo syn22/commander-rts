@@ -286,6 +286,82 @@
       color: #888;
     }
 
+    /* Leaderboard */
+    #leaderboard-section {
+      max-width: 700px;
+      margin-top: 32px;
+    }
+
+    #leaderboard-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #e94560;
+      text-align: center;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    #leaderboard-list {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .leaderboard-loading {
+      text-align: center;
+      color: #666;
+      padding: 20px;
+      font-size: 14px;
+    }
+
+    .leaderboard-entry {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      transition: background 0.15s;
+    }
+
+    .leaderboard-entry:last-child {
+      border-bottom: none;
+    }
+
+    .leaderboard-entry:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .leaderboard-rank {
+      font-size: 14px;
+      font-weight: 700;
+      color: #e94560;
+      min-width: 24px;
+    }
+
+    .leaderboard-name {
+      flex: 1;
+      font-size: 14px;
+      color: #ddd;
+    }
+
+    .leaderboard-time {
+      font-size: 13px;
+      color: #4caf50;
+      font-weight: 600;
+      font-family: 'Consolas', monospace;
+    }
+
+    .leaderboard-mode {
+      font-size: 11px;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
     #name-section label {
       font-size: 14px;
       color: #aaa;
@@ -1257,6 +1333,14 @@
         <div class="mode-title">Multiplayer</div>
         <div class="mode-desc">Create or join a lobby</div>
       </button>
+    </div>
+
+    <!-- Leaderboard -->
+    <div id="leaderboard-section">
+      <h3 id="leaderboard-title">⚡ Fastest Single Player Wins</h3>
+      <div id="leaderboard-list">
+        <div class="leaderboard-loading">Loading...</div>
+      </div>
     </div>
 
     <!-- Lobby browser (shown after clicking Multiplayer) -->

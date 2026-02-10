@@ -76,6 +76,9 @@ const btnConfirmJoin = document.getElementById('btn-confirm-join')!;
 // Error toast
 const errorToast = document.getElementById('lobby-error-toast')!;
 
+// Leaderboard
+const leaderboardList = document.getElementById('leaderboard-list')!;
+
 // Game
 const chatLog = document.getElementById('chat-log')!;
 const gameOverEl = document.getElementById('game-over')!;
@@ -193,6 +196,43 @@ function clearChatLog(): void {
   chatLog.innerHTML = '';
 }
 
+function loadLeaderboard(): void {
+  leaderboardList.innerHTML = '<div class="leaderboard-loading">Loading...</div>';
+
+  socket.getLeaderboard((entries) => {
+    if (entries.length === 0) {
+      leaderboardList.innerHTML = '<div class="leaderboard-loading">No victories yet. Be the first!</div>';
+      return;
+    }
+
+    leaderboardList.innerHTML = '';
+    entries.forEach((entry, index) => {
+      const div = document.createElement('div');
+      div.className = 'leaderboard-entry';
+
+      const rank = document.createElement('div');
+      rank.className = 'leaderboard-rank';
+      rank.textContent = `#${index + 1}`;
+
+      const name = document.createElement('div');
+      name.className = 'leaderboard-name';
+      name.textContent = entry.playerName;
+
+      const time = document.createElement('div');
+      time.className = 'leaderboard-time';
+      const minutes = Math.floor(entry.timeSeconds / 60);
+      const seconds = Math.floor(entry.timeSeconds % 60);
+      time.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+      div.appendChild(rank);
+      div.appendChild(name);
+      div.appendChild(time);
+
+      leaderboardList.appendChild(div);
+    });
+  });
+}
+
 //
 // Lobby UI Logic
 //
@@ -201,6 +241,7 @@ function clearChatLog(): void {
 landingPlayBtn.addEventListener('click', () => {
   showScreen('lobby');
   lobbyScreen.classList.add('active');
+  loadLeaderboard();
 });
 
 // Single player button
@@ -374,6 +415,12 @@ function showGameOver(state: GameStateUpdate): void {
   const secs = state.gameTime % 60;
   gameOverStats.textContent = `Game duration: ${mins}:${secs.toString().padStart(2, '0')}`;
 
+  // Submit victory to leaderboard only for singleplayer wins
+  if (won && myGameMode === 'singleplayer') {
+    const playerName = getPlayerName();
+    socket.submitVictory(playerName, state.gameTime, myGameMode);
+  }
+
   gameOverEl.classList.add('active');
 }
 
@@ -391,6 +438,7 @@ function returnToLobby(): void {
   showScreen('lobby');
   lobbyBrowser.classList.remove('active');
   modeButtons.style.display = 'flex';
+  loadLeaderboard();
 }
 
 // Restart (singleplayer only)

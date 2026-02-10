@@ -121,4 +121,14 @@ export class SocketClient {
   leaveLobby(): void {
     this.socket.emit('leave_lobby');
   }
+
+  // Leaderboard
+  submitVictory(playerName: string, timeSeconds: number, gameMode: GameMode): void {
+    this.socket.emit('submit_victory', { playerName, timeSeconds, gameMode });
+  }
+
+  getLeaderboard(callback: (entries: any[]) => void): void {
+    this.socket.once('leaderboard_data', callback);
+    this.socket.emit('get_leaderboard');
+  }
 }
