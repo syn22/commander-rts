@@ -20,9 +20,9 @@ import {
 } from '../../shared/types.js';
 import { GAME_CONFIG } from './Config.js';
 
-// ============================================================
+//
 // Game Engine — tick-based simulation
-// ============================================================
+//
 
 export class GameEngine {
   state: GameState;

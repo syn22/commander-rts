@@ -3,9 +3,9 @@ import { Base } from '../game/Combat.js';
 import { TileType, FogState, PlayerId, Position } from '../../shared/types.js';
 import { GAME_CONFIG } from '../game/Config.js';
 
-// ============================================================
+//
 // Build LLM prompt from game state
-// ============================================================
+//
 
 const SYSTEM_PROMPT = `You are a battlefield commander AI for a real-time strategy game. You receive the player's visible game state and their natural language command, and you must translate it into specific unit actions.
 

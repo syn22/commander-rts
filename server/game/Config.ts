@@ -1,9 +1,9 @@
 import { UnitType, TileType } from '../../shared/types.js';
 import type { UnitStats } from '../../shared/types.js';
 
-// ============================================================
+//
 // All game configuration — single source of truth
-// ============================================================
+//
 
 export const GAME_CONFIG = {
   // Map (larger to fit 50 units per side)

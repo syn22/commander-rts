@@ -10,10 +10,10 @@ import {
   CombatEvent,
 } from '../../shared/types.js';
 
-// ============================================================
+//
 // Enhanced 2D game renderer
 // — Smooth interpolation, shadows, labels, terrain detail
-// ============================================================
+//
 
 const TILE_SIZE = 36; // smaller tiles for larger 40x30 map
 
@@ -242,9 +242,9 @@ export class GameRenderer {
     this.cameraY = this.canvas.height / 2 - tileY * TILE_SIZE - TILE_SIZE / 2;
   }
 
-  // ============================================================
+  //
   // Main render
-  // ============================================================
+  //
   render(state: GameStateUpdate): void {
     const ctx = this.ctx;
     const w = this.canvas.width;
@@ -293,9 +293,9 @@ export class GameRenderer {
     ctx.restore();
   }
 
-  // ============================================================
+  //
   // Smooth interpolation
-  // ============================================================
+  //
   private updateUnitVisuals(units: UnitData[], now: number): void {
     const activeIds = new Set<string>();
 
@@ -334,9 +334,9 @@ export class GameRenderer {
     return this.unitVisuals.get(unitId) ? { x: this.unitVisuals.get(unitId)!.renderX, y: this.unitVisuals.get(unitId)!.renderY } : null;
   }
 
-  // ============================================================
+  //
   // Terrain
-  // ============================================================
+  //
   private drawTerrain(mapTiles: TileType[][], fogMap: FogState[][]): void {
     const ctx = this.ctx;
 
@@ -476,9 +476,9 @@ export class GameRenderer {
     }
   }
 
-  // ============================================================
+  //
   // Grid
-  // ============================================================
+  //
   private drawGrid(mapWidth: number, mapHeight: number): void {
     const ctx = this.ctx;
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
@@ -498,9 +498,9 @@ export class GameRenderer {
     }
   }
 
-  // ============================================================
+  //
   // Unit shadows (drawn before units for layering)
-  // ============================================================
+  //
   private drawUnitShadows(units: UnitData[], fogMap: FogState[][]): void {
     const ctx = this.ctx;
 
@@ -519,9 +519,9 @@ export class GameRenderer {
     }
   }
 
-  // ============================================================
+  //
   // Bases
-  // ============================================================
+  //
   private drawBases(bases: BaseData[], fogMap: FogState[][]): void {
     const ctx = this.ctx;
 
@@ -578,9 +578,9 @@ export class GameRenderer {
     }
   }
 
-  // ============================================================
+  //
   // Units
-  // ============================================================
+  //
   private drawUnits(units: UnitData[], fogMap: FogState[][]): void {
     const ctx = this.ctx;
     const now = this.timeAccum;
@@ -650,9 +650,9 @@ export class GameRenderer {
     }
   }
 
-  // ============================================================
+  //
   // HP bar helper
-  // ============================================================
+  //
   private drawHPBar(cx: number, y: number, width: number, height: number, hp: number, maxHp: number): void {
     const ctx = this.ctx;
     const hpPct = hp / maxHp;
@@ -676,9 +676,9 @@ export class GameRenderer {
     ctx.fillRect(barX, y, width * hpPct, height / 2);
   }
 
-  // ============================================================
+  //
   // Attack animations
-  // ============================================================
+  //
   private drawAnimations(): void {
     const ctx = this.ctx;
     const now = this.timeAccum;

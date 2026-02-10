@@ -41,7 +41,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      opacity: 0.15;
+      opacity: 0.25;
       z-index: 0;
     }
 
@@ -185,6 +185,7 @@
       justify-content: center;
       height: 100vh;
       padding: 20px;
+      background: #0a0a0f;
     }
 
     #lobby-screen.active {
@@ -194,16 +195,19 @@
     #lobby-screen.hidden { display: none; }
 
     #lobby-title {
-      font-size: 48px;
-      color: #e94560;
+      font-size: 64px;
+      font-weight: 900;
+      color: #fff;
       margin-bottom: 8px;
-      letter-spacing: 2px;
+      letter-spacing: -1px;
+      text-shadow: 0 0 40px rgba(233, 69, 96, 0.3);
     }
 
     #lobby-subtitle {
-      color: #888;
-      font-size: 14px;
-      margin-bottom: 32px;
+      color: #666;
+      font-size: 16px;
+      margin-bottom: 48px;
+      font-weight: 300;
     }
 
     /* Name entry */
@@ -1112,7 +1116,7 @@
       <div id="command-demo">
         <div class="demo-prompt">
           <span class="prompt-symbol">></span>
-          <span class="demo-text">"5 cavalry flank left, archers hold center"</span>
+          <span class="demo-text">"cavalry flank left, archers attack their base"</span>
         </div>
       </div>
 

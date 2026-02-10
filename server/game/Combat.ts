@@ -2,9 +2,9 @@ import { Unit } from './Unit.js';
 import { GAME_CONFIG, UNIT_STATS } from './Config.js';
 import { PlayerId, Position, UnitState } from '../../shared/types.js';
 
-// ============================================================
+//
 // Combat system
-// ============================================================
+//
 
 export interface Base {
   owner: PlayerId;

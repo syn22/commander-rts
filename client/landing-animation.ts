@@ -1,6 +1,6 @@
-// ============================================================
+//
 // Landing Page Animation - Simplified game preview
-// ============================================================
+//
 
 interface AnimatedUnit {
   x: number;

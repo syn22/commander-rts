@@ -7,9 +7,9 @@ import { ScrollEditor } from './input/ScrollEditor.js';
 import { LandingAnimation } from './landing-animation.js';
 import { GameStateUpdate, PlayerId, GameMode, LobbyInfo } from '../shared/types.js';
 
-// ============================================================
+//
 // Client entry point — lobby + game flow
-// ============================================================
+//
 
 // State
 let latestState: GameStateUpdate | null = null;
@@ -34,9 +34,9 @@ const commandInput = new CommandInput();
 const scrollEditor = new ScrollEditor();
 const landingAnimation = new LandingAnimation(landingCanvas);
 
-// ============================================================
+//
 // DOM Elements
-// ============================================================
+//
 
 // Screens
 const landingPage = document.getElementById('landing-page')!;
@@ -99,9 +99,9 @@ const modelInfo = document.getElementById('model-info')!;
 // Landing page buttons
 const landingPlayBtn = document.getElementById('landing-play-btn')!;
 
-// ============================================================
+//
 // Screen management
-// ============================================================
+//
 
 function showScreen(screen: 'landing' | 'lobby' | 'waiting' | 'game'): void {
   landingPage.classList.toggle('hidden', screen !== 'landing');
@@ -126,9 +126,9 @@ function showError(message: string): void {
   setTimeout(() => errorToast.classList.remove('active'), 3000);
 }
 
-// ============================================================
+//
 // Chat log system
-// ============================================================
+//
 
 function addChatMessage(text: string, type: 'player-cmd' | 'llm-response' | 'llm-clarify' | 'system-msg'): void {
   const msg = document.createElement('div');
@@ -154,9 +154,9 @@ function addChatMessage(text: string, type: 'player-cmd' | 'llm-response' | 'llm
   chatLog.scrollTop = chatLog.scrollHeight;
 }
 
-// ============================================================
+//
 // Debug panel system
-// ============================================================
+//
 
 function addDebugEntry(command: string, jsonResponse: any): void {
   const entry = document.createElement('div');
@@ -193,9 +193,9 @@ function clearChatLog(): void {
   chatLog.innerHTML = '';
 }
 
-// ============================================================
+//
 // Lobby UI Logic
-// ============================================================
+//
 
 // Landing page - Play Now button
 landingPlayBtn.addEventListener('click', () => {
@@ -279,9 +279,9 @@ btnConfirmJoin.addEventListener('click', () => {
   }
 });
 
-// ============================================================
+//
 // Render lobby list
-// ============================================================
+//
 
 function renderLobbyList(lobbies: LobbyInfo[]): void {
   lobbyListEl.innerHTML = '';
@@ -331,9 +331,9 @@ function escapeHtml(text: string): string {
   return div.innerHTML;
 }
 
-// ============================================================
+//
 // Game start / end
-// ============================================================
+//
 
 function startGame(data: GameStartingData): void {
   myPlayerId = data.playerId;
@@ -411,9 +411,9 @@ leaveBtn.addEventListener('click', () => {
   returnToLobby();
 });
 
-// ============================================================
+//
 // Socket event handlers
-// ============================================================
+//
 
 // Game starting (both modes)
 socket.setOnGameStarting((data: GameStartingData) => {
@@ -515,9 +515,9 @@ commandInput.setOnSubmit((command: string) => {
   socket.sendCommand(command, scrollEditor.getScroll(), selectedModel);
 });
 
-// ============================================================
+//
 // Render loop
-// ============================================================
+//
 
 gameRenderer.resize();
 

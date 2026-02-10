@@ -6,9 +6,9 @@ import { setupSocketHandlers } from './network/SocketHandler.js';
 import { fileURLToPath } from 'url';
 import path from 'path';
 
-// ============================================================
+//
 // Server entry point
-// ============================================================
+//
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = parseInt(process.env.PORT || '3000', 10);

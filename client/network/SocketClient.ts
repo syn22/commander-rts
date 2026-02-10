@@ -1,9 +1,9 @@
 import { io, Socket } from 'socket.io-client';
 import type { GameStateUpdate, PlayerId, GameMode, LobbyInfo } from '../../shared/types.js';
 
-// ============================================================
+//
 // Socket.io client — lobby + singleplayer support
-// ============================================================
+//
 
 export interface GameStartingData {
   playerId: PlayerId;

@@ -2,9 +2,9 @@ import { LLMAction, ActionType, TileType } from '../../shared/types.js';
 import { Unit } from '../game/Unit.js';
 import { GAME_CONFIG, TERRAIN_CONFIG } from '../game/Config.js';
 
-// ============================================================
+//
 // Validate LLM-generated actions before execution
-// ============================================================
+//
 
 const VALID_ACTION_TYPES = new Set<string>([
   ActionType.MOVE,

@@ -5,9 +5,9 @@ import { Base, createBase } from './Combat.js';
 import { generateMap } from './MapGenerator.js';
 import { FogOfWarSystem } from './FogOfWar.js';
 
-// ============================================================
+//
 // Game State — holds all game data
-// ============================================================
+//
 
 export class GameState {
   map: TileType[][];

@@ -5,9 +5,9 @@ import { Base } from '../game/Combat.js';
 import { buildPrompt } from './PromptBuilder.js';
 import { validateActions } from './ActionValidator.js';
 
-// ============================================================
+//
 // LLM Command Parser — sends commands to Claude API
-// ============================================================
+//
 
 let anthropicClient: Anthropic | null = null;
 

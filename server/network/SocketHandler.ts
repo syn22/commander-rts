@@ -6,9 +6,9 @@ import { ActionType, PlayerId, LLMAction, GameStateUpdate, GameMode, LobbyInfo, 
 import { Unit, UnitOrder } from '../game/Unit.js';
 import { randomBytes } from 'crypto';
 
-// ============================================================
+//
 // Socket.io event handler — lobby + singleplayer support
-// ============================================================
+//
 
 interface Lobby {
   id: string;
@@ -66,9 +66,9 @@ export function setupSocketHandlers(io: Server): void {
     };
     sessions.set(socket.id, session);
 
-    // ==========================================
+    //
     // Singleplayer (no lobby, just play)
-    // ==========================================
+    //
 
     socket.on('start_singleplayer', (data: { playerName: string }) => {
       const sess = sessions.get(socket.id);
@@ -102,9 +102,9 @@ export function setupSocketHandlers(io: Server): void {
       console.log(`[${socket.id}] Started singleplayer as "${sess.playerName}"`);
     });
 
-    // ==========================================
+    //
     // Lobby system
-    // ==========================================
+    //
 
     socket.on('create_lobby', (data: { playerName: string; lobbyName: string; password?: string }) => {
       const sess = sessions.get(socket.id);
@@ -239,9 +239,9 @@ export function setupSocketHandlers(io: Server): void {
       io.emit('lobby_list', getLobbyList());
     });
 
-    // ==========================================
+    //
     // In-game commands (works for both modes)
-    // ==========================================
+    //
 
     socket.on('send_command', async (data: { command: string; scroll?: string; model?: string }) => {
       const sess = sessions.get(socket.id);
@@ -308,9 +308,9 @@ export function setupSocketHandlers(io: Server): void {
       socket.emit('game_state_update', state);
     });
 
-    // ==========================================
+    //
     // Restart (works for singleplayer; multiplayer restarts go back to lobby)
-    // ==========================================
+    //
 
     socket.on('restart_game', () => {
       const sess = sessions.get(socket.id);
@@ -335,9 +335,9 @@ export function setupSocketHandlers(io: Server): void {
       // For multiplayer, client should go back to lobby via 'leave_lobby'
     });
 
-    // ==========================================
+    //
     // Disconnect
-    // ==========================================
+    //
 
     socket.on('disconnect', () => {
       cleanupSession(socket.id, io);
@@ -348,9 +348,9 @@ export function setupSocketHandlers(io: Server): void {
   });
 }
 
-// ============================================================
+//
 // Helpers
-// ============================================================
+//
 
 function getEngineForSession(sess: PlayerSession): GameEngine | null {
   if (sess.soloEngine) return sess.soloEngine;
