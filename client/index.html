@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Commander RTS</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #1a1a2e;
+      color: #e0e0e0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+      height: 100vh;
+    }
+
+    /* ===== LOBBY SCREEN ===== */
+    #lobby-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      padding: 20px;
+    }
+
+    #lobby-screen.hidden { display: none; }
+
+    #lobby-title {
+      font-size: 48px;
+      color: #e94560;
+      margin-bottom: 8px;
+      letter-spacing: 2px;
+    }
+
+    #lobby-subtitle {
+      color: #888;
+      font-size: 14px;
+      margin-bottom: 32px;
+    }
+
+    /* Name entry */
+    #name-section {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 32px;
+    }
+
+    #name-section label {
+      font-size: 14px;
+      color: #aaa;
+    }
+
+    #player-name-input {
+      background: #16213e;
+      color: #e0e0e0;
+      border: 1px solid #444;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 16px;
+      width: 220px;
+      outline: none;
+    }
+
+    #player-name-input:focus {
+      border-color: #e94560;
+    }
+
+    /* Mode buttons */
+    #mode-buttons {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .mode-btn {
+      padding: 14px 28px;
+      border: 2px solid #333;
+      border-radius: 8px;
+      background: #16213e;
+      color: #e0e0e0;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+      min-width: 200px;
+      text-align: center;
+    }
+
+    .mode-btn:hover {
+      border-color: #e94560;
+      background: #1a2a4e;
+    }
+
+    .mode-btn .mode-title {
+      font-weight: bold;
+      font-size: 18px;
+      margin-bottom: 4px;
+    }
+
+    .mode-btn .mode-desc {
+      font-size: 12px;
+      color: #888;
+    }
+
+    /* Lobby browser */
+    #lobby-browser {
+      display: none;
+      width: 600px;
+      max-width: 90vw;
+    }
+
+    #lobby-browser.active { display: block; }
+
+    #lobby-browser-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    #lobby-browser-header h3 {
+      color: #e94560;
+      font-size: 18px;
+    }
+
+    #lobby-browser-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    #lobby-search-input {
+      background: #16213e;
+      color: #e0e0e0;
+      border: 1px solid #444;
+      border-radius: 4px;
+      padding: 8px 12px;
+      font-size: 13px;
+      width: 200px;
+      outline: none;
+    }
+
+    #lobby-search-input:focus { border-color: #e94560; }
+
+    .lobby-btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    .btn-create { background: #e94560; color: white; }
+    .btn-create:hover { background: #c23152; }
+    .btn-refresh { background: #333; color: white; }
+    .btn-refresh:hover { background: #444; }
+    .btn-back { background: #555; color: white; }
+    .btn-back:hover { background: #666; }
+
+    #lobby-list {
+      background: #16213e;
+      border: 1px solid #333;
+      border-radius: 8px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .lobby-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      border-bottom: 1px solid #2a2a4e;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .lobby-item:last-child { border-bottom: none; }
+    .lobby-item:hover { background: #1a2a4e; }
+
+    .lobby-item-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .lobby-item-name {
+      font-weight: bold;
+      font-size: 15px;
+    }
+
+    .lobby-item-host {
+      font-size: 12px;
+      color: #888;
+    }
+
+    .lobby-item-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .lobby-item-players {
+      font-size: 13px;
+      color: #aaa;
+    }
+
+    .lobby-item-lock {
+      font-size: 16px;
+    }
+
+    .lobby-item-status {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 3px;
+    }
+
+    .status-waiting { background: #2a5a2a; color: #8f8; }
+    .status-playing { background: #5a2a2a; color: #f88; }
+
+    .lobby-empty {
+      padding: 40px;
+      text-align: center;
+      color: #555;
+      font-size: 14px;
+    }
+
+    /* Create lobby modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-overlay.active { display: flex; }
+
+    .modal-content {
+      background: #16213e;
+      border: 1px solid #444;
+      border-radius: 8px;
+      padding: 24px;
+      width: 400px;
+      max-width: 90vw;
+    }
+
+    .modal-content h3 {
+      color: #e94560;
+      margin-bottom: 16px;
+    }
+
+    .modal-content label {
+      display: block;
+      font-size: 13px;
+      color: #aaa;
+      margin-bottom: 4px;
+      margin-top: 12px;
+    }
+
+    .modal-content input {
+      width: 100%;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      border: 1px solid #444;
+      border-radius: 4px;
+      padding: 10px 12px;
+      font-size: 14px;
+      outline: none;
+    }
+
+    .modal-content input:focus { border-color: #e94560; }
+
+    .modal-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+
+    /* Waiting screen */
+    #waiting-screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    #waiting-screen.active {
+      display: flex;
+    }
+
+    #waiting-lobby-name {
+      font-size: 24px;
+      color: #e94560;
+      margin-bottom: 12px;
+    }
+
+    #waiting-text {
+      color: #888;
+      font-size: 16px;
+      margin-bottom: 24px;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #333;
+      border-top-color: #e94560;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 24px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Lobby error toast */
+    #lobby-error-toast {
+      display: none;
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #d32f2f;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 14px;
+      z-index: 200;
+      animation: fadeIn 0.2s ease;
+    }
+
+    #lobby-error-toast.active { display: block; }
+
+    /* ===== GAME SCREEN ===== */
+    #game-screen {
+      display: none;
+      height: 100vh;
+    }
+
+    #game-screen.active {
+      display: flex;
+    }
+
+    /* ===== LEFT PANEL — LLM Command Center ===== */
+    #left-panel {
+      width: 360px;
+      min-width: 360px;
+      display: flex;
+      flex-direction: column;
+      background: #16213e;
+      border-right: 2px solid #333;
+    }
+
+    #left-header {
+      padding: 12px 16px;
+      background: #0f3460;
+      border-bottom: 1px solid #333;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    #left-header h2 {
+      font-size: 16px;
+      color: #e94560;
+      letter-spacing: 1px;
+    }
+
+    #header-buttons {
+      display: flex;
+      gap: 6px;
+    }
+
+    #scroll-btn, #leave-btn {
+      background: #533483;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 6px 12px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    #scroll-btn:hover, #leave-btn:hover {
+      background: #6a42a0;
+    }
+
+    #leave-btn {
+      background: #8b2252;
+    }
+
+    #leave-btn:hover {
+      background: #a52a5a;
+    }
+
+    /* Chat log */
+    #chat-log {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    #chat-log::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    #chat-log::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    #chat-log::-webkit-scrollbar-thumb {
+      background: #444;
+      border-radius: 3px;
+    }
+
+    .chat-msg {
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      line-height: 1.4;
+      animation: fadeIn 0.2s ease;
+      word-wrap: break-word;
+    }
+
+    .chat-msg.player-cmd {
+      background: #0f3460;
+      border-left: 3px solid #e94560;
+      color: #fff;
+    }
+
+    .chat-msg.llm-response {
+      background: rgba(76, 175, 80, 0.15);
+      border-left: 3px solid #4caf50;
+      color: #c8e6c9;
+    }
+
+    .chat-msg.llm-clarify {
+      background: rgba(255, 152, 0, 0.15);
+      border-left: 3px solid #ff9800;
+      color: #ffe0b2;
+    }
+
+    .chat-msg.system-msg {
+      background: rgba(255, 255, 255, 0.05);
+      border-left: 3px solid #555;
+      color: #888;
+      font-size: 12px;
+      font-style: italic;
+    }
+
+    .chat-msg .timestamp {
+      font-size: 10px;
+      color: #666;
+      margin-bottom: 2px;
+    }
+
+    /* Command input area */
+    #command-area {
+      padding: 12px;
+      border-top: 1px solid #333;
+      background: #0f3460;
+    }
+
+    #command-input {
+      width: 100%;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      border: 1px solid #444;
+      border-radius: 6px;
+      padding: 12px 14px;
+      font-size: 16px;
+      font-family: inherit;
+      outline: none;
+      resize: none;
+      min-height: 52px;
+    }
+
+    #command-input:focus {
+      border-color: #e94560;
+      box-shadow: 0 0 0 2px rgba(233, 69, 96, 0.2);
+    }
+
+    #command-input::placeholder {
+      color: #555;
+    }
+
+    #command-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 8px;
+    }
+
+    #pending-indicator {
+      font-size: 12px;
+      color: #888;
+    }
+
+    #send-btn {
+      background: #e94560;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 24px;
+      font-size: 14px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.2s;
+    }
+
+    #send-btn:hover {
+      background: #c23152;
+    }
+
+    /* ===== RIGHT PANEL — Game Map ===== */
+    #right-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #game-container {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #game-canvas {
+      display: block;
+    }
+
+    /* HUD overlay */
+    #hud {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      display: flex;
+      gap: 16px;
+      font-size: 13px;
+      pointer-events: none;
+    }
+
+    .hud-item {
+      background: rgba(0, 0, 0, 0.75);
+      padding: 6px 12px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .hud-item .label {
+      color: #888;
+      font-size: 10px;
+      text-transform: uppercase;
+    }
+
+    .hud-item .value {
+      font-weight: bold;
+      font-size: 15px;
+    }
+
+    .hp-friendly { color: #4caf50; }
+    .hp-enemy { color: #f44336; }
+
+    /* Minimap */
+    #minimap-container {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    #minimap-canvas {
+      display: block;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
+    }
+
+    /* Scroll editor modal */
+    #scroll-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #scroll-modal.active {
+      display: flex;
+    }
+
+    #scroll-editor {
+      background: #16213e;
+      border: 1px solid #444;
+      border-radius: 8px;
+      padding: 20px;
+      width: 600px;
+      max-height: 80vh;
+    }
+
+    #scroll-editor h2 {
+      margin-bottom: 10px;
+      color: #e94560;
+    }
+
+    #scroll-editor p {
+      color: #888;
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+
+    #scroll-textarea {
+      width: 100%;
+      height: 200px;
+      background: #0f3460;
+      color: #e0e0e0;
+      border: 1px solid #444;
+      border-radius: 4px;
+      padding: 10px;
+      font-family: 'Consolas', monospace;
+      font-size: 13px;
+      resize: vertical;
+    }
+
+    #scroll-editor .buttons {
+      margin-top: 10px;
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    #scroll-editor button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .btn-save {
+      background: #4caf50;
+      color: white;
+    }
+
+    .btn-cancel {
+      background: #555;
+      color: white;
+    }
+
+    /* Game over overlay */
+    #game-over {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 200;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+
+    #game-over.active {
+      display: flex;
+    }
+
+    #game-over h1 {
+      font-size: 48px;
+      margin-bottom: 20px;
+    }
+
+    #game-over .victory { color: #4caf50; }
+    #game-over .defeat { color: #f44336; }
+
+    #game-over-buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    #restart-btn, #back-to-lobby-btn {
+      background: #e94560;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 12px 32px;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    #back-to-lobby-btn {
+      background: #555;
+    }
+
+    #back-to-lobby-btn:hover { background: #666; }
+    #restart-btn:hover { background: #c23152; }
+
+    /* Opponent info bar */
+    #opponent-bar {
+      display: none;
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.75);
+      padding: 6px 14px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 13px;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    #opponent-bar.active { display: block; }
+
+    #opponent-bar .label {
+      color: #888;
+      font-size: 10px;
+      text-transform: uppercase;
+    }
+
+    #opponent-bar .value {
+      color: #f44336;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <!-- ===== LOBBY SCREEN ===== -->
+  <div id="lobby-screen">
+    <h1 id="lobby-title">COMMANDER RTS</h1>
+    <p id="lobby-subtitle">Command your army with natural language</p>
+
+    <div id="name-section">
+      <label for="player-name-input">Your Name:</label>
+      <input type="text" id="player-name-input" placeholder="Enter your name..." maxlength="20" />
+    </div>
+
+    <div id="mode-buttons">
+      <button class="mode-btn" id="btn-singleplayer">
+        <div class="mode-title">Single Player</div>
+        <div class="mode-desc">Practice against AI (half damage)</div>
+      </button>
+      <button class="mode-btn" id="btn-multiplayer">
+        <div class="mode-title">Multiplayer</div>
+        <div class="mode-desc">Create or join a lobby</div>
+      </button>
+    </div>
+
+    <!-- Lobby browser (shown after clicking Multiplayer) -->
+    <div id="lobby-browser">
+      <div id="lobby-browser-header">
+        <h3>Lobbies</h3>
+        <div id="lobby-browser-actions">
+          <input type="text" id="lobby-search-input" placeholder="Search lobbies..." />
+          <button class="lobby-btn btn-refresh" id="btn-refresh-lobbies">Refresh</button>
+          <button class="lobby-btn btn-create" id="btn-create-lobby">+ Create</button>
+          <button class="lobby-btn btn-back" id="btn-back-to-menu">Back</button>
+        </div>
+      </div>
+      <div id="lobby-list">
+        <div class="lobby-empty">No lobbies available. Create one!</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Waiting screen (after creating lobby) -->
+  <div id="waiting-screen">
+    <div class="spinner"></div>
+    <div id="waiting-lobby-name"></div>
+    <div id="waiting-text">Waiting for opponent to join...</div>
+    <button class="lobby-btn btn-back" id="btn-cancel-lobby" style="padding: 10px 24px; font-size: 14px;">Cancel</button>
+  </div>
+
+  <!-- Create lobby modal -->
+  <div class="modal-overlay" id="create-lobby-modal">
+    <div class="modal-content">
+      <h3>Create Lobby</h3>
+      <label>Lobby Name</label>
+      <input type="text" id="create-lobby-name" placeholder="My Game" maxlength="30" />
+      <label>Password (optional)</label>
+      <input type="password" id="create-lobby-password" placeholder="Leave empty for public" maxlength="20" />
+      <div class="modal-actions">
+        <button class="lobby-btn btn-back" id="btn-cancel-create">Cancel</button>
+        <button class="lobby-btn btn-create" id="btn-confirm-create">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Join password modal -->
+  <div class="modal-overlay" id="join-password-modal">
+    <div class="modal-content">
+      <h3>Enter Password</h3>
+      <label>This lobby is password-protected</label>
+      <input type="password" id="join-lobby-password" placeholder="Enter password..." />
+      <div class="modal-actions">
+        <button class="lobby-btn btn-back" id="btn-cancel-join">Cancel</button>
+        <button class="lobby-btn btn-create" id="btn-confirm-join">Join</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lobby error toast -->
+  <div id="lobby-error-toast"></div>
+
+  <!-- ===== GAME SCREEN ===== -->
+  <div id="game-screen">
+    <!-- LEFT PANEL: LLM Command Center -->
+    <div id="left-panel">
+      <div id="left-header">
+        <h2 id="commander-title">COMMANDER</h2>
+        <div id="header-buttons">
+          <button id="scroll-btn">Scroll</button>
+          <button id="leave-btn">Leave</button>
+        </div>
+      </div>
+
+      <div id="chat-log"></div>
+
+      <div id="command-area">
+        <input type="text" id="command-input" placeholder="Type a command... (e.g., 'send archers north')" autocomplete="off" />
+        <div id="command-actions">
+          <span id="pending-indicator"></span>
+          <button id="send-btn">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL: Game Map -->
+    <div id="right-panel">
+      <div id="game-container">
+        <canvas id="game-canvas"></canvas>
+
+        <div id="hud">
+          <div class="hud-item">
+            <div class="label">Your Base</div>
+            <div class="value hp-friendly" id="hud-base-hp">1000/1000</div>
+          </div>
+          <div class="hud-item">
+            <div class="label">Enemy Base</div>
+            <div class="value hp-enemy" id="hud-enemy-hp">1000/1000</div>
+          </div>
+          <div class="hud-item">
+            <div class="label">Units</div>
+            <div class="value" id="hud-units">50</div>
+          </div>
+          <div class="hud-item">
+            <div class="label">Time</div>
+            <div class="value" id="hud-time">0:00</div>
+          </div>
+        </div>
+
+        <div id="opponent-bar">
+          <div class="label">VS</div>
+          <div class="value" id="opponent-name"></div>
+        </div>
+
+        <div id="minimap-container">
+          <canvas id="minimap-canvas" width="200" height="150"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scroll Editor Modal -->
+  <div id="scroll-modal">
+    <div id="scroll-editor">
+      <h2>Edit Your Scroll</h2>
+      <p>Define custom shorthand that the AI commander will understand. This gets prepended to every command.</p>
+      <textarea id="scroll-textarea" placeholder='Example:
+When I say "A" I mean my archers.
+When I say "F" I mean my footmen.
+When I say "C" I mean my cavalry.
+"Rush" means send all cavalry to the enemy base.'></textarea>
+      <div class="buttons">
+        <button class="btn-cancel" id="scroll-cancel">Cancel</button>
+        <button class="btn-save" id="scroll-save">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Over Overlay -->
+  <div id="game-over">
+    <h1 id="game-over-text"></h1>
+    <p id="game-over-stats"></p>
+    <div id="game-over-buttons">
+      <button id="restart-btn">Play Again</button>
+      <button id="back-to-lobby-btn">Back to Menu</button>
+    </div>
+  </div>
+
+  <script type="module" src="./main.ts"></script>
+</body>
+</html>
