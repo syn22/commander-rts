@@ -282,6 +282,10 @@ export function setupSocketHandlers(io: Server): void {
         socket.emit('command_response', {
           message: response.response,
           needsClarification: response.needsClarification,
+          debug: {
+            actions: response.actions,
+            fullResponse: response,
+          },
         });
       } catch (error) {
         console.error(`[${socket.id}] Command processing error:`, error);

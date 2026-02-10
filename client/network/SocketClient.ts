@@ -16,7 +16,7 @@ export class SocketClient {
   private socket: Socket;
   private onStateUpdate: ((state: GameStateUpdate) => void) | null = null;
   private onInitialState: ((state: GameStateUpdate) => void) | null = null;
-  private onCommandResponse: ((response: { message: string; needsClarification?: boolean }) => void) | null = null;
+  private onCommandResponse: ((response: { message: string; needsClarification?: boolean; debug?: any }) => void) | null = null;
   private onGameStarting: ((data: GameStartingData) => void) | null = null;
   private onLobbyCreated: ((data: { lobbyId: string; lobbyName: string; playerId: PlayerId }) => void) | null = null;
   private onLobbyList: ((lobbies: LobbyInfo[]) => void) | null = null;
@@ -47,7 +47,7 @@ export class SocketClient {
       if (this.onInitialState) this.onInitialState(state);
     });
 
-    this.socket.on('command_response', (response: { message: string; needsClarification?: boolean }) => {
+    this.socket.on('command_response', (response: { message: string; needsClarification?: boolean; debug?: any }) => {
       if (this.onCommandResponse) this.onCommandResponse(response);
     });
 
@@ -80,7 +80,7 @@ export class SocketClient {
   // Setters for callbacks
   setOnStateUpdate(cb: (state: GameStateUpdate) => void): void { this.onStateUpdate = cb; }
   setOnInitialState(cb: (state: GameStateUpdate) => void): void { this.onInitialState = cb; }
-  setOnCommandResponse(cb: (response: { message: string; needsClarification?: boolean }) => void): void { this.onCommandResponse = cb; }
+  setOnCommandResponse(cb: (response: { message: string; needsClarification?: boolean; debug?: any }) => void): void { this.onCommandResponse = cb; }
   setOnGameStarting(cb: (data: GameStartingData) => void): void { this.onGameStarting = cb; }
   setOnLobbyCreated(cb: (data: { lobbyId: string; lobbyName: string; playerId: PlayerId }) => void): void { this.onLobbyCreated = cb; }
   setOnLobbyList(cb: (lobbies: LobbyInfo[]) => void): void { this.onLobbyList = cb; }

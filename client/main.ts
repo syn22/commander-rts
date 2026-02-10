@@ -16,6 +16,7 @@ let myPlayerId: PlayerId = 1;
 let myGameMode: GameMode = 'singleplayer';
 let opponentName: string = '';
 let gameInitialized = false;
+let lastCommand: string = ''; // Store last command for debug panel
 
 // Lobby state
 let joiningLobbyId: string | null = null;  // tracks which lobby we're joining (for password modal)
@@ -82,6 +83,11 @@ const leaveBtn = document.getElementById('leave-btn')!;
 const opponentBar = document.getElementById('opponent-bar')!;
 const opponentNameEl = document.getElementById('opponent-name')!;
 
+// Debug panel
+const debugPanel = document.getElementById('debug-panel')!;
+const debugToggleBtn = document.getElementById('debug-toggle-btn')!;
+const debugContent = document.getElementById('debug-content')!
+
 // ============================================================
 // Screen management
 // ============================================================
@@ -135,6 +141,41 @@ function addChatMessage(text: string, type: 'player-cmd' | 'llm-response' | 'llm
 
   chatLog.scrollTop = chatLog.scrollHeight;
 }
+
+// ============================================================
+// Debug panel system
+// ============================================================
+
+function addDebugEntry(command: string, jsonResponse: any): void {
+  const entry = document.createElement('div');
+  entry.className = 'debug-entry';
+
+  const now = new Date();
+  const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+
+  entry.innerHTML = `
+    <div class="debug-timestamp">${timeStr}</div>
+    <div class="debug-command">Command: "${command}"</div>
+    <pre class="debug-json">${JSON.stringify(jsonResponse, null, 2)}</pre>
+  `;
+
+  // Clear placeholder text
+  if (debugContent.children.length === 1 && debugContent.firstElementChild?.textContent?.includes('Send a command')) {
+    debugContent.innerHTML = '';
+  }
+
+  debugContent.insertBefore(entry, debugContent.firstChild);
+
+  // Keep only last 20 entries
+  while (debugContent.children.length > 20) {
+    debugContent.removeChild(debugContent.lastChild!);
+  }
+}
+
+debugToggleBtn.addEventListener('click', () => {
+  debugPanel.classList.toggle('active');
+  debugToggleBtn.classList.toggle('active');
+});
 
 function clearChatLog(): void {
   chatLog.innerHTML = '';
@@ -394,6 +435,11 @@ socket.setOnCommandResponse((response) => {
   const type = response.needsClarification ? 'llm-clarify' : 'llm-response';
   addChatMessage(response.message, type);
   commandInput.decrementPending();
+
+  // Add to debug panel if debug data is present
+  if (response.debug) {
+    addDebugEntry(lastCommand, response.debug);
+  }
 });
 
 // Lobby events
@@ -425,6 +471,7 @@ socket.setOnOpponentDisconnected((data) => {
 
 // Command input — supports rapid-fire commands
 commandInput.setOnSubmit((command: string) => {
+  lastCommand = command; // Store for debug panel
   commandInput.incrementPending();
   addChatMessage(command, 'player-cmd');
   socket.sendCommand(command, scrollEditor.getScroll());
