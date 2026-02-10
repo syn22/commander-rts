@@ -36,6 +36,7 @@ const scrollEditor = new ScrollEditor();
 // ============================================================
 
 // Screens
+const landingPage = document.getElementById('landing-page')!;
 const lobbyScreen = document.getElementById('lobby-screen')!;
 const waitingScreen = document.getElementById('waiting-screen')!;
 const gameScreen = document.getElementById('game-screen')!;
@@ -92,11 +93,15 @@ const debugContent = document.getElementById('debug-content')!;
 const modelSelector = document.getElementById('model-selector') as HTMLSelectElement;
 const modelInfo = document.getElementById('model-info')!;
 
+// Landing page button
+const landingPlayBtn = document.getElementById('landing-play-btn')!;
+
 // ============================================================
 // Screen management
 // ============================================================
 
-function showScreen(screen: 'lobby' | 'waiting' | 'game'): void {
+function showScreen(screen: 'landing' | 'lobby' | 'waiting' | 'game'): void {
+  landingPage.classList.toggle('hidden', screen !== 'landing');
   lobbyScreen.classList.toggle('hidden', screen !== 'lobby');
   lobbyScreen.style.display = screen === 'lobby' ? 'flex' : 'none';
   waitingScreen.classList.toggle('active', screen === 'waiting');
@@ -188,6 +193,12 @@ function clearChatLog(): void {
 // ============================================================
 // Lobby UI Logic
 // ============================================================
+
+// Landing page - Enter Battle button
+landingPlayBtn.addEventListener('click', () => {
+  showScreen('lobby');
+  lobbyScreen.classList.add('active');
+});
 
 // Single player button
 btnSingleplayer.addEventListener('click', () => {

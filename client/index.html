@@ -19,14 +19,138 @@
       height: 100vh;
     }
 
-    /* ===== LOBBY SCREEN ===== */
-    #lobby-screen {
+    /* ===== LANDING PAGE ===== */
+    #landing-page {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       height: 100vh;
+      padding: 40px 20px;
+      background: linear-gradient(135deg, #0f0c29 0%, #1a1a2e 50%, #24243e 100%);
+      text-align: center;
+    }
+
+    #landing-page.hidden { display: none; }
+
+    #landing-title {
+      font-size: 72px;
+      font-weight: bold;
+      color: #e94560;
+      margin-bottom: 12px;
+      letter-spacing: 4px;
+      text-shadow: 0 0 20px rgba(233, 69, 96, 0.5);
+    }
+
+    #landing-tagline {
+      font-size: 24px;
+      color: #aaa;
+      margin-bottom: 48px;
+      font-style: italic;
+    }
+
+    #landing-description {
+      max-width: 700px;
+      font-size: 16px;
+      line-height: 1.8;
+      color: #ccc;
+      margin-bottom: 40px;
+    }
+
+    #landing-description strong {
+      color: #e94560;
+    }
+
+    #landing-features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      max-width: 800px;
+      width: 100%;
+      margin-bottom: 48px;
+    }
+
+    .feature-box {
+      background: rgba(22, 33, 62, 0.6);
+      border: 1px solid #333;
+      border-radius: 8px;
       padding: 20px;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+
+    .feature-box:hover {
+      transform: translateY(-4px);
+      border-color: #e94560;
+    }
+
+    .feature-icon {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+
+    .feature-title {
+      font-size: 16px;
+      font-weight: bold;
+      color: #e94560;
+      margin-bottom: 8px;
+    }
+
+    .feature-desc {
+      font-size: 13px;
+      color: #888;
+      line-height: 1.5;
+    }
+
+    #landing-cta {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .cta-btn {
+      padding: 18px 48px;
+      border: 2px solid #e94560;
+      border-radius: 8px;
+      background: #e94560;
+      color: white;
+      font-size: 20px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .cta-btn:hover {
+      background: #c23152;
+      border-color: #c23152;
+      transform: scale(1.05);
+      box-shadow: 0 0 20px rgba(233, 69, 96, 0.5);
+    }
+
+    .cta-btn.secondary {
+      background: transparent;
+      color: #e94560;
+    }
+
+    .cta-btn.secondary:hover {
+      background: rgba(233, 69, 96, 0.1);
+      border-color: #e94560;
+    }
+
+    /* ===== LOBBY SCREEN ===== */
+    #lobby-screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      padding: 20px;
+    }
+
+    #lobby-screen.active {
+      display: flex;
     }
 
     #lobby-screen.hidden { display: none; }
@@ -939,6 +1063,47 @@
   </style>
 </head>
 <body>
+  <!-- ===== LANDING PAGE ===== -->
+  <div id="landing-page">
+    <h1 id="landing-title">COMMANDER RTS</h1>
+    <p id="landing-tagline">Command your army with natural language. No clicking. Pure strategy.</p>
+
+    <div id="landing-description">
+      <p>
+        Inspired by <strong>Code Geass</strong>, experience real-time strategy like never before.
+        Issue commands in plain English—your AI interprets and executes them instantly.
+        Choose your LLM model for different strategic styles. Command. Conquer. Dominate.
+      </p>
+    </div>
+
+    <div id="landing-features">
+      <div class="feature-box">
+        <div class="feature-icon">💬</div>
+        <div class="feature-title">Natural Language</div>
+        <div class="feature-desc">Type commands like "5 cavalry charge left flank"</div>
+      </div>
+      <div class="feature-box">
+        <div class="feature-icon">🧠</div>
+        <div class="feature-title">AI Models</div>
+        <div class="feature-desc">Choose between speed (Haiku) or sophistication (Sonnet)</div>
+      </div>
+      <div class="feature-box">
+        <div class="feature-icon">⚔️</div>
+        <div class="feature-title">Real-Time Combat</div>
+        <div class="feature-desc">Fog of war, formations, and tactical positioning</div>
+      </div>
+      <div class="feature-box">
+        <div class="feature-icon">🌐</div>
+        <div class="feature-title">Multiplayer</div>
+        <div class="feature-desc">Battle other commanders in strategic warfare</div>
+      </div>
+    </div>
+
+    <div id="landing-cta">
+      <button class="cta-btn" id="landing-play-btn">Enter Battle</button>
+    </div>
+  </div>
+
   <!-- ===== LOBBY SCREEN ===== -->
   <div id="lobby-screen">
     <h1 id="lobby-title">COMMANDER RTS</h1>
