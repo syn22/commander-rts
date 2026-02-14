@@ -1,7 +1,7 @@
 import { TileType } from '../../shared/types.js';
 import { GAME_CONFIG } from './Config.js';
 
-// ============================================================
+//
 // Fixed hand-crafted map for prototype
 // 40 wide x 30 tall — larger battlefield for 50 units per side
 // Symmetric left-right (mirrored at column 20)
@@ -12,7 +12,7 @@ import { GAME_CONFIG } from './Config.js';
 //   - Hills near passages for scouting
 //   - Rock formations for cover
 //   - Bases on far left/right
-// ============================================================
+//
 
 const G = TileType.GRASS;
 const W = TileType.WATER;

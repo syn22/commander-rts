@@ -4,11 +4,12 @@ import { MinimapRenderer } from './renderer/MinimapRenderer.js';
 import { UIRenderer } from './renderer/UIRenderer.js';
 import { CommandInput } from './input/CommandInput.js';
 import { ScrollEditor } from './input/ScrollEditor.js';
+import { LandingAnimation } from './landing-animation.js';
 import { GameStateUpdate, PlayerId, GameMode, LobbyInfo } from '../shared/types.js';
 
-// ============================================================
+//
 // Client entry point — lobby + game flow
-// ============================================================
+//
 
 // State
 let latestState: GameStateUpdate | null = null;
@@ -16,6 +17,7 @@ let myPlayerId: PlayerId = 1;
 let myGameMode: GameMode = 'singleplayer';
 let opponentName: string = '';
 let gameInitialized = false;
+let lastCommand: string = ''; // Store last command for debug panel
 
 // Lobby state
 let joiningLobbyId: string | null = null;  // tracks which lobby we're joining (for password modal)
@@ -24,17 +26,20 @@ let joiningLobbyId: string | null = null;  // tracks which lobby we're joining (
 const socket = new SocketClient();
 const gameCanvas = document.getElementById('game-canvas') as HTMLCanvasElement;
 const minimapCanvas = document.getElementById('minimap-canvas') as HTMLCanvasElement;
+const landingCanvas = document.getElementById('landing-canvas') as HTMLCanvasElement;
 const gameRenderer = new GameRenderer(gameCanvas);
 const minimapRenderer = new MinimapRenderer(minimapCanvas);
 const uiRenderer = new UIRenderer();
 const commandInput = new CommandInput();
 const scrollEditor = new ScrollEditor();
+const landingAnimation = new LandingAnimation(landingCanvas);
 
-// ============================================================
+//
 // DOM Elements
-// ============================================================
+//
 
 // Screens
+const landingPage = document.getElementById('landing-page')!;
 const lobbyScreen = document.getElementById('lobby-screen')!;
 const waitingScreen = document.getElementById('waiting-screen')!;
 const gameScreen = document.getElementById('game-screen')!;
@@ -71,6 +76,9 @@ const btnConfirmJoin = document.getElementById('btn-confirm-join')!;
 // Error toast
 const errorToast = document.getElementById('lobby-error-toast')!;
 
+// Leaderboard
+const leaderboardList = document.getElementById('leaderboard-list')!;
+
 // Game
 const chatLog = document.getElementById('chat-log')!;
 const gameOverEl = document.getElementById('game-over')!;
@@ -82,11 +90,24 @@ const leaveBtn = document.getElementById('leave-btn')!;
 const opponentBar = document.getElementById('opponent-bar')!;
 const opponentNameEl = document.getElementById('opponent-name')!;
 
-// ============================================================
-// Screen management
-// ============================================================
+// Debug panel
+const debugPanel = document.getElementById('debug-panel')!;
+const debugToggleBtn = document.getElementById('debug-toggle-btn')!;
+const debugContent = document.getElementById('debug-content')!;
 
-function showScreen(screen: 'lobby' | 'waiting' | 'game'): void {
+// Model selector
+const modelSelector = document.getElementById('model-selector') as HTMLSelectElement;
+const modelInfo = document.getElementById('model-info')!;
+
+// Landing page buttons
+const landingPlayBtn = document.getElementById('landing-play-btn')!;
+
+//
+// Screen management
+//
+
+function showScreen(screen: 'landing' | 'lobby' | 'waiting' | 'game'): void {
+  landingPage.classList.toggle('hidden', screen !== 'landing');
   lobbyScreen.classList.toggle('hidden', screen !== 'lobby');
   lobbyScreen.style.display = screen === 'lobby' ? 'flex' : 'none';
   waitingScreen.classList.toggle('active', screen === 'waiting');
@@ -108,9 +129,9 @@ function showError(message: string): void {
   setTimeout(() => errorToast.classList.remove('active'), 3000);
 }
 
-// ============================================================
+//
 // Chat log system
-// ============================================================
+//
 
 function addChatMessage(text: string, type: 'player-cmd' | 'llm-response' | 'llm-clarify' | 'system-msg'): void {
   const msg = document.createElement('div');
@@ -136,13 +157,92 @@ function addChatMessage(text: string, type: 'player-cmd' | 'llm-response' | 'llm
   chatLog.scrollTop = chatLog.scrollHeight;
 }
 
+//
+// Debug panel system
+//
+
+function addDebugEntry(command: string, jsonResponse: any): void {
+  const entry = document.createElement('div');
+  entry.className = 'debug-entry';
+
+  const now = new Date();
+  const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+
+  entry.innerHTML = `
+    <div class="debug-timestamp">${timeStr}</div>
+    <div class="debug-command">Command: "${command}"</div>
+    <pre class="debug-json">${JSON.stringify(jsonResponse, null, 2)}</pre>
+  `;
+
+  // Clear placeholder text
+  if (debugContent.children.length === 1 && debugContent.firstElementChild?.textContent?.includes('Send a command')) {
+    debugContent.innerHTML = '';
+  }
+
+  debugContent.insertBefore(entry, debugContent.firstChild);
+
+  // Keep only last 20 entries
+  while (debugContent.children.length > 20) {
+    debugContent.removeChild(debugContent.lastChild!);
+  }
+}
+
+debugToggleBtn.addEventListener('click', () => {
+  debugPanel.classList.toggle('active');
+  debugToggleBtn.classList.toggle('active');
+});
+
 function clearChatLog(): void {
   chatLog.innerHTML = '';
 }
 
-// ============================================================
+function loadLeaderboard(): void {
+  leaderboardList.innerHTML = '<div class="leaderboard-loading">Loading...</div>';
+
+  socket.getLeaderboard((entries) => {
+    if (entries.length === 0) {
+      leaderboardList.innerHTML = '<div class="leaderboard-loading">No victories yet. Be the first!</div>';
+      return;
+    }
+
+    leaderboardList.innerHTML = '';
+    entries.forEach((entry, index) => {
+      const div = document.createElement('div');
+      div.className = 'leaderboard-entry';
+
+      const rank = document.createElement('div');
+      rank.className = 'leaderboard-rank';
+      rank.textContent = `#${index + 1}`;
+
+      const name = document.createElement('div');
+      name.className = 'leaderboard-name';
+      name.textContent = entry.playerName;
+
+      const time = document.createElement('div');
+      time.className = 'leaderboard-time';
+      const minutes = Math.floor(entry.timeSeconds / 60);
+      const seconds = Math.floor(entry.timeSeconds % 60);
+      time.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+      div.appendChild(rank);
+      div.appendChild(name);
+      div.appendChild(time);
+
+      leaderboardList.appendChild(div);
+    });
+  });
+}
+
+//
 // Lobby UI Logic
-// ============================================================
+//
+
+// Landing page - Play Now button
+landingPlayBtn.addEventListener('click', () => {
+  showScreen('lobby');
+  lobbyScreen.classList.add('active');
+  loadLeaderboard();
+});
 
 // Single player button
 btnSingleplayer.addEventListener('click', () => {
@@ -220,9 +320,9 @@ btnConfirmJoin.addEventListener('click', () => {
   }
 });
 
-// ============================================================
+//
 // Render lobby list
-// ============================================================
+//
 
 function renderLobbyList(lobbies: LobbyInfo[]): void {
   lobbyListEl.innerHTML = '';
@@ -272,9 +372,9 @@ function escapeHtml(text: string): string {
   return div.innerHTML;
 }
 
-// ============================================================
+//
 // Game start / end
-// ============================================================
+//
 
 function startGame(data: GameStartingData): void {
   myPlayerId = data.playerId;
@@ -315,6 +415,12 @@ function showGameOver(state: GameStateUpdate): void {
   const secs = state.gameTime % 60;
   gameOverStats.textContent = `Game duration: ${mins}:${secs.toString().padStart(2, '0')}`;
 
+  // Submit victory to leaderboard only for singleplayer wins
+  if (won && myGameMode === 'singleplayer') {
+    const playerName = getPlayerName();
+    socket.submitVictory(playerName, state.gameTime, myGameMode);
+  }
+
   gameOverEl.classList.add('active');
 }
 
@@ -332,6 +438,7 @@ function returnToLobby(): void {
   showScreen('lobby');
   lobbyBrowser.classList.remove('active');
   modeButtons.style.display = 'flex';
+  loadLeaderboard();
 }
 
 // Restart (singleplayer only)
@@ -352,9 +459,9 @@ leaveBtn.addEventListener('click', () => {
   returnToLobby();
 });
 
-// ============================================================
+//
 // Socket event handlers
-// ============================================================
+//
 
 // Game starting (both modes)
 socket.setOnGameStarting((data: GameStartingData) => {
@@ -394,6 +501,11 @@ socket.setOnCommandResponse((response) => {
   const type = response.needsClarification ? 'llm-clarify' : 'llm-response';
   addChatMessage(response.message, type);
   commandInput.decrementPending();
+
+  // Add to debug panel if debug data is present
+  if (response.debug) {
+    addDebugEntry(lastCommand, response.debug);
+  }
 });
 
 // Lobby events
@@ -423,16 +535,37 @@ socket.setOnOpponentDisconnected((data) => {
   });
 });
 
-// Command input — supports rapid-fire commands
-commandInput.setOnSubmit((command: string) => {
-  commandInput.incrementPending();
-  addChatMessage(command, 'player-cmd');
-  socket.sendCommand(command, scrollEditor.getScroll());
+// Model selector — update info text and save to localStorage
+modelSelector.addEventListener('change', () => {
+  const model = modelSelector.value;
+  const infoMap: Record<string, string> = {
+    'haiku': '~200ms',
+    'sonnet-3.5': '~500ms',
+    'sonnet-4': '~1500ms'
+  };
+  modelInfo.textContent = infoMap[model] || '~500ms';
+  localStorage.setItem('selected-model', model);
 });
 
-// ============================================================
+// Load saved model preference
+const savedModel = localStorage.getItem('selected-model');
+if (savedModel && ['haiku', 'sonnet-3.5', 'sonnet-4'].includes(savedModel)) {
+  modelSelector.value = savedModel;
+  modelSelector.dispatchEvent(new Event('change'));
+}
+
+// Command input — supports rapid-fire commands
+commandInput.setOnSubmit((command: string) => {
+  lastCommand = command; // Store for debug panel
+  commandInput.incrementPending();
+  addChatMessage(command, 'player-cmd');
+  const selectedModel = modelSelector.value;
+  socket.sendCommand(command, scrollEditor.getScroll(), selectedModel);
+});
+
+//
 // Render loop
-// ============================================================
+//
 
 gameRenderer.resize();
 
@@ -441,14 +574,20 @@ function renderLoop(): void {
     gameRenderer.render(latestState);
     minimapRenderer.render(latestState);
     uiRenderer.update(latestState);
+
+    // Update zoom indicator
+    const zoomValue = document.getElementById('zoom-value');
+    if (zoomValue) {
+      zoomValue.textContent = `${Math.round(gameRenderer.getZoom() * 100)}%`;
+    }
   }
   requestAnimationFrame(renderLoop);
 }
 
 renderLoop();
 
-// Start on lobby screen
-showScreen('lobby');
+// Start on landing page
+showScreen('landing');
 
 // Load saved name from localStorage
 const savedName = localStorage.getItem('commander_rts_name');

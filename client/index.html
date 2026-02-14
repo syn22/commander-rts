@@ -19,29 +19,202 @@
       height: 100vh;
     }
 
-    /* ===== LOBBY SCREEN ===== */
-    #lobby-screen {
+    /* ===== LANDING PAGE ===== */
+    #landing-page {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       height: 100vh;
+      padding: 40px 20px;
+      background: #0a0a0f;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #landing-page.hidden { display: none; }
+
+    #landing-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0.25;
+      z-index: 0;
+    }
+
+    #landing-content {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    #landing-title {
+      font-size: 96px;
+      font-weight: 900;
+      color: #fff;
+      margin-bottom: 16px;
+      letter-spacing: -2px;
+      text-shadow: 0 0 40px rgba(233, 69, 96, 0.3);
+      position: relative;
+      z-index: 1;
+    }
+
+    #landing-tagline {
+      font-size: 28px;
+      color: #888;
+      margin-bottom: 60px;
+      font-weight: 300;
+      letter-spacing: 0.5px;
+      position: relative;
+      z-index: 1;
+    }
+
+    #command-demo {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(233, 69, 96, 0.3);
+      border-radius: 12px;
+      padding: 24px 32px;
+      margin-bottom: 48px;
+      backdrop-filter: blur(10px);
+      position: relative;
+      z-index: 1;
+      max-width: 600px;
+    }
+
+    .demo-prompt {
+      font-size: 20px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      color: #4caf50;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .prompt-symbol {
+      color: #e94560;
+      font-weight: bold;
+      font-size: 24px;
+    }
+
+    .demo-text {
+      color: #ddd;
+    }
+
+    #landing-description {
+      max-width: 600px;
+      font-size: 18px;
+      line-height: 1.6;
+      color: #aaa;
+      margin-bottom: 48px;
+      position: relative;
+      z-index: 1;
+    }
+
+    #landing-cta {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 60px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .cta-btn {
+      padding: 20px 56px;
+      border: none;
+      border-radius: 6px;
+      background: #e94560;
+      color: white;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.5px;
+    }
+
+    .cta-btn:hover {
+      background: #ff5571;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(233, 69, 96, 0.4);
+    }
+
+    .cta-btn.secondary {
+      background: transparent;
+      border: 1px solid #555;
+      color: #ddd;
+    }
+
+    .cta-btn.secondary:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: #777;
+      box-shadow: none;
+    }
+
+    #landing-features {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+      position: relative;
+      z-index: 1;
+    }
+
+    .feature-tag {
+      padding: 8px 20px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      color: #888;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 500;
+    }
+
+    /* ===== LOBBY SCREEN ===== */
+    #lobby-screen {
+      display: none;
+      height: 100vh;
       padding: 20px;
+      background: #0a0a0f;
+      position: relative;
+    }
+
+    #lobby-screen.active {
+      display: flex;
+      gap: 40px;
+      align-items: center;
+      justify-content: center;
     }
 
     #lobby-screen.hidden { display: none; }
 
+    #lobby-main-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
     #lobby-title {
-      font-size: 48px;
-      color: #e94560;
+      font-size: 64px;
+      font-weight: 900;
+      color: #fff;
       margin-bottom: 8px;
-      letter-spacing: 2px;
+      letter-spacing: -1px;
+      text-shadow: 0 0 40px rgba(233, 69, 96, 0.3);
     }
 
     #lobby-subtitle {
-      color: #888;
-      font-size: 14px;
-      margin-bottom: 32px;
+      color: #666;
+      font-size: 16px;
+      margin-bottom: 48px;
+      font-weight: 300;
     }
 
     /* Name entry */
@@ -50,6 +223,152 @@
       gap: 12px;
       align-items: center;
       margin-bottom: 32px;
+    }
+
+    /* Game introduction */
+    #game-intro {
+      max-width: 700px;
+      margin-bottom: 32px;
+    }
+
+    #objective-box {
+      background: rgba(233, 69, 96, 0.1);
+      border: 1px solid rgba(233, 69, 96, 0.3);
+      border-radius: 8px;
+      padding: 16px 24px;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+
+    .objective-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #e94560;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .objective-text {
+      font-size: 16px;
+      color: #ddd;
+      font-weight: 500;
+    }
+
+    #units-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .unit-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 16px 12px;
+      text-align: center;
+      transition: all 0.2s;
+    }
+
+    .unit-card:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+
+    .unit-icon {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+
+    .unit-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    .unit-desc {
+      font-size: 12px;
+      color: #888;
+    }
+
+    /* Leaderboard */
+    #leaderboard-section {
+      width: 320px;
+      align-self: stretch;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #leaderboard-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #e94560;
+      text-align: center;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    #leaderboard-list {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 12px;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .leaderboard-loading {
+      text-align: center;
+      color: #666;
+      padding: 20px;
+      font-size: 14px;
+    }
+
+    .leaderboard-entry {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      transition: background 0.15s;
+    }
+
+    .leaderboard-entry:last-child {
+      border-bottom: none;
+    }
+
+    .leaderboard-entry:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .leaderboard-rank {
+      font-size: 14px;
+      font-weight: 700;
+      color: #e94560;
+      min-width: 24px;
+    }
+
+    .leaderboard-name {
+      flex: 1;
+      font-size: 14px;
+      color: #ddd;
+    }
+
+    .leaderboard-time {
+      font-size: 13px;
+      color: #4caf50;
+      font-weight: 600;
+      font-family: 'Consolas', monospace;
+    }
+
+    .leaderboard-mode {
+      font-size: 11px;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
     #name-section label {
@@ -363,6 +682,101 @@
       border-right: 2px solid #333;
     }
 
+    /* Debug panel */
+    #debug-panel {
+      width: 400px;
+      min-width: 400px;
+      display: none;
+      flex-direction: column;
+      background: #1a1a2e;
+      border-right: 2px solid #333;
+    }
+
+    #debug-panel.active {
+      display: flex;
+    }
+
+    #debug-header {
+      padding: 12px 16px;
+      background: #2a2a4e;
+      border-bottom: 1px solid #333;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    #debug-header h2 {
+      font-size: 16px;
+      color: #ff9800;
+      letter-spacing: 1px;
+    }
+
+    #debug-toggle {
+      background: #533483;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 6px 12px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    #debug-toggle:hover {
+      background: #6a42a0;
+    }
+
+    #debug-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 12px;
+    }
+
+    #debug-content::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    #debug-content::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    #debug-content::-webkit-scrollbar-thumb {
+      background: #444;
+      border-radius: 3px;
+    }
+
+    .debug-entry {
+      margin-bottom: 16px;
+      padding: 10px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 4px;
+      border-left: 3px solid #ff9800;
+    }
+
+    .debug-entry .debug-timestamp {
+      color: #666;
+      font-size: 10px;
+      margin-bottom: 4px;
+    }
+
+    .debug-entry .debug-command {
+      color: #4caf50;
+      margin-bottom: 6px;
+      font-weight: bold;
+    }
+
+    .debug-entry .debug-json {
+      color: #e0e0e0;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 8px;
+      border-radius: 3px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
     #left-header {
       padding: 12px 16px;
       background: #0f3460;
@@ -383,7 +797,7 @@
       gap: 6px;
     }
 
-    #scroll-btn, #leave-btn {
+    #scroll-btn, #leave-btn, #debug-toggle-btn {
       background: #533483;
       color: white;
       border: none;
@@ -393,8 +807,20 @@
       cursor: pointer;
     }
 
-    #scroll-btn:hover, #leave-btn:hover {
+    #scroll-btn:hover, #leave-btn:hover, #debug-toggle-btn:hover {
       background: #6a42a0;
+    }
+
+    #debug-toggle-btn {
+      background: #ff9800;
+    }
+
+    #debug-toggle-btn:hover {
+      background: #f57c00;
+    }
+
+    #debug-toggle-btn.active {
+      background: #4caf50;
     }
 
     #leave-btn {
@@ -474,6 +900,54 @@
       padding: 12px;
       border-top: 1px solid #333;
       background: #0f3460;
+    }
+
+    /* Model selector */
+    #model-selector-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      padding: 8px 10px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 6px;
+      border: 1px solid #444;
+    }
+
+    #model-selector-label {
+      font-size: 12px;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    #model-selector {
+      flex: 1;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      border: 1px solid #555;
+      border-radius: 4px;
+      padding: 6px 10px;
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+      outline: none;
+    }
+
+    #model-selector:hover {
+      border-color: #e94560;
+    }
+
+    #model-selector:focus {
+      border-color: #e94560;
+      box-shadow: 0 0 0 2px rgba(233, 69, 96, 0.2);
+    }
+
+    #model-info {
+      font-size: 11px;
+      color: #4caf50;
+      white-space: nowrap;
+      font-weight: bold;
     }
 
     #command-input {
@@ -756,28 +1230,128 @@
       color: #f44336;
       font-weight: bold;
     }
+
+    /* Zoom controls */
+    #zoom-controls {
+      position: absolute;
+      bottom: 170px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.75);
+      padding: 8px 14px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 12px;
+      pointer-events: none;
+      text-align: right;
+    }
+
+    .zoom-label {
+      color: #4caf50;
+      font-weight: bold;
+      margin-bottom: 2px;
+    }
+
+    .zoom-hint {
+      color: #666;
+      font-size: 10px;
+    }
   </style>
 </head>
 <body>
+  <!-- ===== LANDING PAGE ===== -->
+  <div id="landing-page">
+    <canvas id="landing-canvas"></canvas>
+
+    <div id="landing-content">
+      <h1 id="landing-title">COMMANDER RTS</h1>
+      <p id="landing-tagline">Type your orders. Watch your army execute.</p>
+
+      <div id="command-demo">
+        <div class="demo-prompt">
+          <span class="prompt-symbol">></span>
+          <span class="demo-text">"cavalry flank left, archers attack their base"</span>
+        </div>
+      </div>
+
+      <div id="landing-description">
+        <p>
+          No clicking. No micromanagement. Pure tactical command.
+          Just type what you want, your army does the rest.
+        </p>
+      </div>
+
+      <div id="landing-cta">
+        <button class="cta-btn" id="landing-play-btn">Play Now</button>
+      </div>
+
+      <div id="landing-features">
+        <span class="feature-tag">Real-time battles</span>
+        <span class="feature-tag">Multiplayer</span>
+        <span class="feature-tag">Fast or complex commands, your style</span>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== LOBBY SCREEN ===== -->
   <div id="lobby-screen">
-    <h1 id="lobby-title">COMMANDER RTS</h1>
-    <p id="lobby-subtitle">Command your army with natural language</p>
+    <div id="lobby-main-content">
+      <h1 id="lobby-title">COMMANDER RTS</h1>
+      <p id="lobby-subtitle">Command your army with natural language</p>
 
-    <div id="name-section">
-      <label for="player-name-input">Your Name:</label>
-      <input type="text" id="player-name-input" placeholder="Enter your name..." maxlength="20" />
+      <div id="name-section">
+        <label for="player-name-input">Your Name:</label>
+        <input type="text" id="player-name-input" placeholder="Enter your name..." maxlength="20" />
+      </div>
+
+      <!-- Unit types and objective -->
+      <div id="game-intro">
+        <div id="objective-box">
+          <div class="objective-title">🎯 Objective</div>
+          <div class="objective-text">Destroy enemy base or eliminate all their units</div>
+        </div>
+
+        <div id="units-grid">
+          <div class="unit-card">
+            <div class="unit-icon">⚔️</div>
+            <div class="unit-name">Footman</div>
+            <div class="unit-desc">Balanced damage and HP</div>
+          </div>
+          <div class="unit-card">
+            <div class="unit-icon">🏹</div>
+            <div class="unit-name">Archer</div>
+            <div class="unit-desc">Long range, low HP</div>
+          </div>
+          <div class="unit-card">
+            <div class="unit-icon">🐴</div>
+            <div class="unit-name">Cavalry</div>
+            <div class="unit-desc">Fast speed, flanking</div>
+          </div>
+          <div class="unit-card">
+            <div class="unit-icon">🎯</div>
+            <div class="unit-name">Catapult</div>
+            <div class="unit-desc">High damage vs bases</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="mode-buttons">
+        <button class="mode-btn" id="btn-singleplayer">
+          <div class="mode-title">Single Player</div>
+          <div class="mode-desc">Practice against AI (half damage)</div>
+        </button>
+        <button class="mode-btn" id="btn-multiplayer">
+          <div class="mode-title">Multiplayer</div>
+          <div class="mode-desc">Create or join a lobby</div>
+        </button>
+      </div>
     </div>
 
-    <div id="mode-buttons">
-      <button class="mode-btn" id="btn-singleplayer">
-        <div class="mode-title">Single Player</div>
-        <div class="mode-desc">Practice against AI (half damage)</div>
-      </button>
-      <button class="mode-btn" id="btn-multiplayer">
-        <div class="mode-title">Multiplayer</div>
-        <div class="mode-desc">Create or join a lobby</div>
-      </button>
+    <!-- Leaderboard -->
+    <div id="leaderboard-section">
+      <h3 id="leaderboard-title">⚡ Fastest Single Player Wins</h3>
+      <div id="leaderboard-list">
+        <div class="leaderboard-loading">Loading...</div>
+      </div>
     </div>
 
     <!-- Lobby browser (shown after clicking Multiplayer) -->
@@ -843,6 +1417,7 @@
       <div id="left-header">
         <h2 id="commander-title">COMMANDER</h2>
         <div id="header-buttons">
+          <button id="debug-toggle-btn">Debug</button>
           <button id="scroll-btn">Scroll</button>
           <button id="leave-btn">Leave</button>
         </div>
@@ -851,10 +1426,30 @@
       <div id="chat-log"></div>
 
       <div id="command-area">
+        <div id="model-selector-container">
+          <span id="model-selector-label">Model:</span>
+          <select id="model-selector">
+            <option value="haiku">Haiku 4.5 (Ultra Fast ~200ms)</option>
+            <option value="sonnet-3.5" selected>Sonnet 4.5 (Balanced ~500ms)</option>
+          </select>
+          <span id="model-info">~500ms</span>
+        </div>
         <input type="text" id="command-input" placeholder="Type a command... (e.g., 'send archers north')" autocomplete="off" />
         <div id="command-actions">
           <span id="pending-indicator"></span>
           <button id="send-btn">Send</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DEBUG PANEL -->
+    <div id="debug-panel">
+      <div id="debug-header">
+        <h2>LLM DEBUG</h2>
+      </div>
+      <div id="debug-content">
+        <div style="color: #666; text-align: center; padding: 20px;">
+          Send a command to see the JSON response...
         </div>
       </div>
     </div>
@@ -881,6 +1476,12 @@
             <div class="label">Time</div>
             <div class="value" id="hud-time">0:00</div>
           </div>
+        </div>
+
+        <!-- Zoom controls -->
+        <div id="zoom-controls">
+          <div class="zoom-label">Zoom: <span id="zoom-value">100%</span></div>
+          <div class="zoom-hint">Scroll or +/- keys | 0 to reset | Middle mouse to pan</div>
         </div>
 
         <div id="opponent-bar">

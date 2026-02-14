@@ -5,10 +5,11 @@ import { findPath } from '../game/Pathfinding.js';
 import { ActionType, PlayerId, LLMAction, GameStateUpdate, GameMode, LobbyInfo, LobbyJoinResult } from '../../shared/types.js';
 import { Unit, UnitOrder } from '../game/Unit.js';
 import { randomBytes } from 'crypto';
+import { LeaderboardManager } from '../leaderboard/LeaderboardManager.js';
 
-// ============================================================
+//
 // Socket.io event handler — lobby + singleplayer support
-// ============================================================
+//
 
 interface Lobby {
   id: string;
@@ -34,6 +35,7 @@ interface PlayerSession {
 // Track all active sessions and lobbies
 const sessions = new Map<string, PlayerSession>();
 const lobbies = new Map<string, Lobby>();
+const leaderboard = new LeaderboardManager();
 
 function generateLobbyId(): string {
   return randomBytes(4).toString('hex');
@@ -66,9 +68,9 @@ export function setupSocketHandlers(io: Server): void {
     };
     sessions.set(socket.id, session);
 
-    // ==========================================
+    //
     // Singleplayer (no lobby, just play)
-    // ==========================================
+    //
 
     socket.on('start_singleplayer', (data: { playerName: string }) => {
       const sess = sessions.get(socket.id);
@@ -102,9 +104,9 @@ export function setupSocketHandlers(io: Server): void {
       console.log(`[${socket.id}] Started singleplayer as "${sess.playerName}"`);
     });
 
-    // ==========================================
+    //
     // Lobby system
-    // ==========================================
+    //
 
     socket.on('create_lobby', (data: { playerName: string; lobbyName: string; password?: string }) => {
       const sess = sessions.get(socket.id);
@@ -239,11 +241,11 @@ export function setupSocketHandlers(io: Server): void {
       io.emit('lobby_list', getLobbyList());
     });
 
-    // ==========================================
+    //
     // In-game commands (works for both modes)
-    // ==========================================
+    //
 
-    socket.on('send_command', async (data: { command: string; scroll?: string }) => {
+    socket.on('send_command', async (data: { command: string; scroll?: string; model?: string }) => {
       const sess = sessions.get(socket.id);
       if (!sess || !sess.playerId) return;
 
@@ -251,8 +253,8 @@ export function setupSocketHandlers(io: Server): void {
       if (!engine) return;
 
       const player = sess.playerId;
-      const { command, scroll } = data;
-      console.log(`[${socket.id}] P${player} Command: "${command}"`);
+      const { command, scroll, model } = data;
+      console.log(`[${socket.id}] P${player} Command: "${command}" (Model: ${model || 'default'})`);
 
       // Get current fog for the player
       const fogMap = engine.state.fog.computeFog(
@@ -271,6 +273,7 @@ export function setupSocketHandlers(io: Server): void {
           fogMap,
           engine.state.map,
           scroll,
+          model,
         );
 
         console.log(`[${socket.id}] LLM response: ${response.response}`);
@@ -282,6 +285,10 @@ export function setupSocketHandlers(io: Server): void {
         socket.emit('command_response', {
           message: response.response,
           needsClarification: response.needsClarification,
+          debug: {
+            actions: response.actions,
+            fullResponse: response,
+          },
         });
       } catch (error) {
         console.error(`[${socket.id}] Command processing error:`, error);
@@ -303,9 +310,9 @@ export function setupSocketHandlers(io: Server): void {
       socket.emit('game_state_update', state);
     });
 
-    // ==========================================
+    //
     // Restart (works for singleplayer; multiplayer restarts go back to lobby)
-    // ==========================================
+    //
 
     socket.on('restart_game', () => {
       const sess = sessions.get(socket.id);
@@ -330,9 +337,21 @@ export function setupSocketHandlers(io: Server): void {
       // For multiplayer, client should go back to lobby via 'leave_lobby'
     });
 
-    // ==========================================
+    // Submit victory to leaderboard
+    socket.on('submit_victory', (data: { playerName: string; timeSeconds: number; gameMode: GameMode }) => {
+      leaderboard.addEntry(data.playerName, data.timeSeconds, data.gameMode);
+      console.log(`[${socket.id}] Victory recorded: ${data.playerName} - ${data.timeSeconds}s (${data.gameMode})`);
+    });
+
+    // Get leaderboard (only singleplayer)
+    socket.on('get_leaderboard', () => {
+      const top10 = leaderboard.getTopEntries(10, 'singleplayer');
+      socket.emit('leaderboard_data', top10);
+    });
+
+    //
     // Disconnect
-    // ==========================================
+    //
 
     socket.on('disconnect', () => {
       cleanupSession(socket.id, io);
@@ -343,9 +362,9 @@ export function setupSocketHandlers(io: Server): void {
   });
 }
 
-// ============================================================
+//
 // Helpers
-// ============================================================
+//
 
 function getEngineForSession(sess: PlayerSession): GameEngine | null {
   if (sess.soloEngine) return sess.soloEngine;
@@ -409,22 +428,30 @@ function cleanupSession(socketId: string, io: Server): void {
  * Execute validated LLM actions on the game engine
  */
 function executeActions(engine: GameEngine, player: PlayerId, actions: LLMAction[]): void {
+  console.log(`Executing ${actions.length} actions for player ${player}`);
+
   for (const action of actions) {
     const unit = engine.state.units.find(u => u.id === action.unitId && u.owner === player && u.alive);
-    if (!unit) continue;
+    if (!unit) {
+      console.warn(`Unit not found for action: ${action.unitId}`);
+      continue;
+    }
 
     const order: UnitOrder = {
       type: action.type,
       target: action.target,
     };
 
-    // Compute path for move/attack_move (avoid occupied tiles)
+    // Compute path for move/attack_move (units can pass through each other)
     if ((action.type === ActionType.MOVE || action.type === ActionType.ATTACK_MOVE) && action.target) {
-      const occupied = engine.state.getOccupiedPositions(unit.id);
-      const path = findPath(engine.state.map, unit.position, action.target, occupied);
+      // Don't pass occupied positions - allow units to path through friendlies
+      const path = findPath(engine.state.map, unit.position, action.target);
       if (path) {
         order.path = path;
         order.pathIndex = 0;
+        console.log(`✓ Unit ${unit.id} got path to (${action.target.x}, ${action.target.y}), length: ${path.length}`);
+      } else {
+        console.warn(`✗ No path found for unit ${unit.id} from (${unit.position.x}, ${unit.position.y}) to target (${action.target.x}, ${action.target.y})`);
       }
     }
 

@@ -3,9 +3,9 @@ import { Base } from '../game/Combat.js';
 import { TileType, FogState, PlayerId, Position } from '../../shared/types.js';
 import { GAME_CONFIG } from '../game/Config.js';
 
-// ============================================================
+//
 // Build LLM prompt from game state
-// ============================================================
+//
 
 const SYSTEM_PROMPT = `You are a battlefield commander AI for a real-time strategy game. You receive the player's visible game state and their natural language command, and you must translate it into specific unit actions.
 
@@ -13,7 +13,9 @@ IMPORTANT RULES:
 - You can ONLY command units that belong to the player. Do NOT reference enemy units in actions.
 - You can ONLY target tiles that are within the map bounds (0-${GAME_CONFIG.MAP_WIDTH - 1} x, 0-${GAME_CONFIG.MAP_HEIGHT - 1} y).
 - Unit IDs follow the format: {player}_{type}_{number} (e.g., "1_archer_1", "1_footman_3").
-- You MUST respond with valid JSON only. No markdown, no code blocks.
+- When splitting units into groups, YOU MUST generate actions for ALL units mentioned, not just some.
+- When positioning multiple units in one location, spread them out in a small formation (2-3 tile radius) instead of stacking on one point.
+- You MUST respond with VALID JSON ONLY. Use double quotes for all strings and property names. No trailing commas. No markdown code blocks.
 
 AVAILABLE ACTION TYPES:
 - "move" — Move to a position. Requires "target": {"x": number, "y": number}
@@ -21,21 +23,18 @@ AVAILABLE ACTION TYPES:
 - "hold" — Stop moving, stay and fight anything in range. No target needed.
 - "retreat" — Move back toward own base. No target needed.
 
-RESPONSE FORMAT (JSON only):
-{
-  "actions": [
-    { "unitId": "1_archer_1", "type": "move", "target": { "x": 15, "y": 8 } }
-  ],
-  "response": "Brief description of what you're doing.",
-  "needsClarification": false
-}
+RESPONSE FORMAT - Return ONLY a valid JSON object. Do not add any text before or after the JSON:
 
-If the command is ambiguous, return empty actions and ask for clarification:
-{
-  "actions": [],
-  "response": "Which archers? You have 2 groups...",
-  "needsClarification": true
-}
+Example 1 (moving units in formation):
+{"actions":[{"unitId":"1_archer_1","type":"move","target":{"x":15,"y":8}},{"unitId":"1_archer_2","type":"move","target":{"x":16,"y":8}},{"unitId":"1_archer_3","type":"move","target":{"x":17,"y":8}}],"response":"Moving archers north.","needsClarification":false}
+
+Example 2 (splitting into groups - MUST include ALL units):
+{"actions":[{"unitId":"1_cavalry_1","type":"move","target":{"x":10,"y":10}},{"unitId":"1_cavalry_2","type":"move","target":{"x":11,"y":10}},{"unitId":"1_cavalry_3","type":"move","target":{"x":30,"y":10}},{"unitId":"1_cavalry_4","type":"move","target":{"x":31,"y":10}}],"response":"Split cavalry into 2 groups.","needsClarification":false}
+
+Example 3 (need clarification):
+{"actions":[],"response":"Which archers? You have 2 groups.","needsClarification":true}
+
+CRITICAL: Your entire response must be a single line of valid JSON. No markdown, no code blocks, no explanation text.
 
 Map reference (40x30 grid):
 - Player 1 base is on the LEFT side (x=2, y=14).
@@ -110,8 +109,8 @@ export function buildPrompt(
   userPrompt += `\nMAP: ${GAME_CONFIG.MAP_WIDTH}x${GAME_CONFIG.MAP_HEIGHT} grid. Terrain: grass(.), water(~, impassable), rock(#, impassable), hill(^, vision bonus)\n`;
 
   // Player's command
-  userPrompt += `\nPLAYER COMMAND: "${command}"\n`;
-  userPrompt += `\nRespond with JSON only. No markdown.`;
+  userPrompt += `\nPLAYER COMMAND: "${command}"\n\n`;
+  userPrompt += `Respond with a single line of valid JSON following the exact format shown in the examples. Start your response with { and end with }. No other text.`;
 
   return { system, user: userPrompt };
 }
