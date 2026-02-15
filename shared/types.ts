@@ -116,6 +116,7 @@ export interface GameStateUpdate {
   combatEvents: CombatEvent[];  // attacks that happened this tick
   playerId?: PlayerId;    // which player this update is for
   gameMode?: GameMode;    // 'singleplayer' or 'multiplayer'
+  levelId?: number;       // level ID if playing a campaign level
 }
 
 // --- Client Events ---
@@ -164,4 +165,19 @@ export interface UnitStats {
   atkSpeed: number;   // seconds between attacks
   minRange?: number;  // minimum range (catapult)
   splashRadius?: number; // splash damage radius (catapult)
+}
+
+// --- Level Info (sent to client) ---
+export interface LevelInfo {
+  id: number;
+  name: string;
+  description: string;
+  stars: { three: number; two: number; one: number };
+}
+
+// --- Level Complete (sent from server) ---
+export interface LevelCompleteData {
+  levelId: number;
+  timeSeconds: number;
+  stars: number;
 }

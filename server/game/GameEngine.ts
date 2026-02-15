@@ -10,6 +10,7 @@ import {
 } from './Combat.js';
 import {
   PlayerId,
+  UnitType,
   UnitState,
   ActionType,
   FogState,
@@ -19,6 +20,7 @@ import {
   CombatEvent,
 } from '../../shared/types.js';
 import { GAME_CONFIG } from './Config.js';
+import { LevelDefinition, getLevelById } from './levels/LevelDefinitions.js';
 
 //
 // Game Engine — tick-based simulation
@@ -27,13 +29,19 @@ import { GAME_CONFIG } from './Config.js';
 export class GameEngine {
   state: GameState;
   gameMode: GameMode;
+  levelDef: LevelDefinition | null = null;
   private tickInterval: ReturnType<typeof setInterval> | null = null;
   private onTick: ((update: GameStateUpdate, player: PlayerId) => void) | null = null;
   private combatEvents: CombatEvent[] = [];  // collected during each tick
 
-  constructor(gameMode: GameMode = 'singleplayer') {
-    this.state = new GameState();
+  constructor(gameMode: GameMode = 'singleplayer', levelId?: number) {
     this.gameMode = gameMode;
+    if (levelId) {
+      this.levelDef = getLevelById(levelId) ?? null;
+      this.state = new GameState(this.levelDef ?? undefined);
+    } else {
+      this.state = new GameState();
+    }
   }
 
   /**
@@ -93,6 +101,16 @@ export class GameEngine {
    * Process all unit movement
    */
   private processMovement(): void {
+    // Build a claim map for final destinations to prevent same-tick stacking
+    const destinationClaims = new Map<string, string>(); // "x,y" -> unitId
+
+    // First pass: register claims for units already at their final position (idle/attacking)
+    for (const unit of this.state.units) {
+      if (!unit.alive) continue;
+      const posKey = `${unit.position.x},${unit.position.y}`;
+      destinationClaims.set(posKey, unit.id);
+    }
+
     for (const unit of this.state.units) {
       if (!unit.alive || !unit.order) continue;
       if (unit.state === UnitState.ATTACKING) {
@@ -123,7 +141,7 @@ export class GameEngine {
         const enemies = this.state.getEnemyUnits(unit.owner);
         const target = findTarget(unit, enemies);
         if (target) {
-          // Stop and fight
+          // Stop and fight — but check stacking: unit stays at current position
           unit.state = UnitState.ATTACKING;
           continue;
         }
@@ -131,7 +149,7 @@ export class GameEngine {
 
       // Move along path
       if (unit.order.path && unit.order.pathIndex !== undefined) {
-        this.moveUnitAlongPath(unit);
+        this.moveUnitAlongPath(unit, destinationClaims);
       } else if (unit.order.target) {
         // Compute path if we don't have one (units can pass through each other)
         const path = findPath(this.state.map, unit.position, unit.order.target);
@@ -149,7 +167,7 @@ export class GameEngine {
   /**
    * Move a unit one step along its path based on its speed
    */
-  private moveUnitAlongPath(unit: Unit): void {
+  private moveUnitAlongPath(unit: Unit, destinationClaims: Map<string, string>): void {
     if (!unit.order?.path || unit.order.pathIndex === undefined) return;
 
     const path = unit.order.path;
@@ -168,13 +186,19 @@ export class GameEngine {
     while (unit.moveProgress >= 1 && unit.order.pathIndex! < path.length) {
       const nextPos = path[unit.order.pathIndex!];
       const isLastStep = unit.order.pathIndex! === path.length - 1;
+      const posKey = `${nextPos.x},${nextPos.y}`;
 
-      // Only block if this is the final destination AND it's occupied
-      if (isLastStep && this.state.isTileOccupied(nextPos.x, nextPos.y, unit.id)) {
-        // Final destination is occupied - stop here (one tile before)
-        unit.clearOrder();
-        unit.state = UnitState.IDLE;
-        break;
+      // Block if final destination is occupied or claimed by another unit this tick
+      if (isLastStep) {
+        const claimant = destinationClaims.get(posKey);
+        if (claimant && claimant !== unit.id) {
+          // Final destination is occupied/claimed - stop here (one tile before)
+          unit.clearOrder();
+          unit.state = UnitState.IDLE;
+          break;
+        }
+        // Claim this destination
+        destinationClaims.set(posKey, unit.id);
       }
 
       // Units can pass through each other during movement
@@ -197,13 +221,20 @@ export class GameEngine {
     for (const unit of this.state.units) {
       if (!unit.alive) continue;
 
+      // Archers and catapults must stop to attack — skip combat while moving
+      if (unit.state === UnitState.MOVING &&
+          (unit.type === UnitType.ARCHER || unit.type === UnitType.CATAPULT)) {
+        continue;
+      }
+
       if (!canAttackThisTick(unit, this.state.tick)) continue;
 
       const enemies = this.state.getEnemyUnits(unit.owner);
       const enemyBase = this.state.getEnemyBase(unit.owner);
 
-      // In singleplayer, Player 2 (bot) deals half damage
-      const dmgMultiplier = (this.gameMode === 'singleplayer' && unit.owner === 2) ? 0.5 : 1;
+      // In free singleplayer (no level), Player 2 (bot) deals half damage
+      // In level mode, enemies deal full damage (puzzle balance)
+      const dmgMultiplier = (this.gameMode === 'singleplayer' && !this.levelDef && unit.owner === 2) ? 0.5 : 1;
 
       // Try to attack a unit first
       const target = findTarget(unit, enemies);
@@ -312,6 +343,7 @@ export class GameEngine {
       gameOver: this.state.gameOver,
       winner: this.state.winner,
       combatEvents: visibleCombatEvents,
+      levelId: this.state.levelId ?? undefined,
     };
   }
 }

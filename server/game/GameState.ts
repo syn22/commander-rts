@@ -4,6 +4,7 @@ import { Unit, UnitOrder } from './Unit.js';
 import { Base, createBase } from './Combat.js';
 import { generateMap } from './MapGenerator.js';
 import { FogOfWarSystem } from './FogOfWar.js';
+import { LevelDefinition, EnemyGroup } from './levels/LevelDefinitions.js';
 
 //
 // Game State — holds all game data
@@ -18,17 +19,74 @@ export class GameState {
   gameOver: boolean = false;
   winner: PlayerId | null = null;
   startTime: number = Date.now();
+  levelId: number | null = null;
 
-  constructor() {
+  constructor(levelDef?: LevelDefinition) {
     this.map = generateMap();
     this.fog = new FogOfWarSystem();
     this.bases = [createBase(1), createBase(2)];
-    this.spawnUnits(1);
-    this.spawnUnits(2);
+
+    if (levelDef) {
+      this.levelId = levelDef.id;
+      if (levelDef.mapModifier) {
+        levelDef.mapModifier(this.map);
+      }
+      this.spawnLevelArmy(1, levelDef);
+      this.spawnLevelEnemies(levelDef);
+    } else {
+      this.spawnUnits(1);
+      this.spawnUnits(2);
+    }
   }
 
   /**
-   * Spawn all units for a player in formation near their base
+   * Spawn player army for a level (near player 1 base)
+   */
+  private spawnLevelArmy(player: PlayerId, levelDef: LevelDefinition): void {
+    const base = GAME_CONFIG.P1_BASE;
+    let unitIndex = 0;
+
+    for (const group of levelDef.playerArmy) {
+      for (let i = 0; i < group.count; i++) {
+        // Arrange in grid formation from base
+        const col = Math.floor(unitIndex / 5);
+        const row = unitIndex % 5;
+        const pos: Position = {
+          x: base.x + 2 + col,
+          y: base.y - 2 + row,
+        };
+        const safePos = this.clampToMap(this.findNearestWalkable(pos));
+        const typeName = group.type;
+        this.units.push(new Unit(`${player}_${typeName}_${i + 1}`, group.type, player, safePos));
+        unitIndex++;
+      }
+    }
+  }
+
+  /**
+   * Spawn enemy army for a level at specified positions
+   */
+  private spawnLevelEnemies(levelDef: LevelDefinition): void {
+    const player: PlayerId = 2;
+
+    for (const group of levelDef.enemyArmy) {
+      for (let i = 0; i < group.count; i++) {
+        // Arrange in grid formation around the group's center position
+        const col = Math.floor(i / 5);
+        const row = i % 5;
+        const pos: Position = {
+          x: group.position.x + col,
+          y: group.position.y - 2 + row,
+        };
+        const safePos = this.clampToMap(this.findNearestWalkable(pos));
+        const typeName = group.type;
+        this.units.push(new Unit(`${player}_${typeName}_${i + 1}`, group.type, player, safePos));
+      }
+    }
+  }
+
+  /**
+   * Spawn all units for a player in formation near their base (default/multiplayer)
    */
   private spawnUnits(player: PlayerId): void {
     const base = player === 1 ? GAME_CONFIG.P1_BASE : GAME_CONFIG.P2_BASE;

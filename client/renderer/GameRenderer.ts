@@ -108,6 +108,7 @@ export class GameRenderer {
 
   // Smooth unit interpolation
   private unitVisuals: Map<string, UnitVisual> = new Map();
+  private previousUnitIds: Set<string> = new Set(); // track which units were visible last frame
   private readonly LERP_SPEED = 8; // higher = snappier
 
   // Attack animations
@@ -305,8 +306,9 @@ export class GameRenderer {
       const targetY = unit.position.y * TILE_SIZE + TILE_SIZE / 2;
 
       let vis = this.unitVisuals.get(unit.id);
-      if (!vis) {
-        // First time seeing this unit — snap to position
+      if (!vis || !this.previousUnitIds.has(unit.id)) {
+        // First time seeing this unit OR unit re-entered vision — snap to position
+        // This prevents leaking enemy movement through fog of war interpolation
         vis = { renderX: targetX, renderY: targetY, targetX, targetY, lastUpdate: now };
         this.unitVisuals.set(unit.id, vis);
       } else {
@@ -328,6 +330,9 @@ export class GameRenderer {
         this.unitVisuals.delete(id);
       }
     }
+
+    // Track which units were visible this frame for next frame's comparison
+    this.previousUnitIds = activeIds;
   }
 
   private getUnitRenderPos(unitId: string): { x: number; y: number } | null {

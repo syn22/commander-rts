@@ -6,6 +6,7 @@ interface LeaderboardEntry {
   timeSeconds: number;
   mode: 'singleplayer' | 'multiplayer';
   timestamp: number;
+  levelId?: number;
 }
 
 const LEADERBOARD_FILE = path.join(process.cwd(), 'leaderboard.json');
@@ -38,12 +39,13 @@ export class LeaderboardManager {
     }
   }
 
-  addEntry(playerName: string, timeSeconds: number, mode: 'singleplayer' | 'multiplayer'): void {
+  addEntry(playerName: string, timeSeconds: number, mode: 'singleplayer' | 'multiplayer', levelId?: number): void {
     this.entries.push({
       playerName,
       timeSeconds,
       mode,
       timestamp: Date.now(),
+      levelId,
     });
 
     // Sort by time (fastest first)
