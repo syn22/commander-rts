@@ -125,9 +125,9 @@ export class GameRenderer {
     this.ctx = canvas.getContext('2d')!;
     this.resize();
 
-    // Mouse panning (middle mouse button only)
+    // Mouse panning (middle mouse button OR right mouse button)
     canvas.addEventListener('mousedown', (e) => {
-      if (e.button === 1) { // Middle mouse button
+      if (e.button === 1 || e.button === 2) { // Middle or right mouse button
         this.isDragging = true;
         this.lastMouseX = e.clientX;
         this.lastMouseY = e.clientY;
@@ -148,30 +148,37 @@ export class GameRenderer {
     canvas.addEventListener('mouseleave', () => { this.isDragging = false; });
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
-    // Mouse wheel zoom
+    // Trackpad & mouse wheel handling
+    // - Pinch-to-zoom on trackpad fires wheel events with ctrlKey=true → zoom
+    // - Two-finger scroll on trackpad fires normal wheel events → pan
+    // - Mouse scroll wheel (discrete, large deltaY) → zoom
     canvas.addEventListener('wheel', (e) => {
       e.preventDefault();
 
-      // Get mouse position relative to canvas before zoom
       const rect = canvas.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
 
-      // Calculate world position before zoom
-      const worldXBefore = (mouseX - this.cameraX) / this.zoom;
-      const worldYBefore = (mouseY - this.cameraY) / this.zoom;
+      if (e.ctrlKey) {
+        // Pinch-to-zoom on trackpad (or Ctrl+scroll on mouse)
+        const worldXBefore = (mouseX - this.cameraX) / this.zoom;
+        const worldYBefore = (mouseY - this.cameraY) / this.zoom;
 
-      // Apply zoom
-      const zoomDelta = e.deltaY > 0 ? 0.9 : 1.1;
-      this.zoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.zoom * zoomDelta));
+        // Pinch events have small deltaY values; scale sensitivity
+        const zoomFactor = 1 - e.deltaY * 0.01;
+        this.zoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.zoom * zoomFactor));
 
-      // Calculate world position after zoom
-      const worldXAfter = (mouseX - this.cameraX) / this.zoom;
-      const worldYAfter = (mouseY - this.cameraY) / this.zoom;
-
-      // Adjust camera to keep mouse position stable
-      this.cameraX += (worldXAfter - worldXBefore) * this.zoom;
-      this.cameraY += (worldYAfter - worldYBefore) * this.zoom;
+        const worldXAfter = (mouseX - this.cameraX) / this.zoom;
+        const worldYAfter = (mouseY - this.cameraY) / this.zoom;
+        this.cameraX += (worldXAfter - worldXBefore) * this.zoom;
+        this.cameraY += (worldYAfter - worldYBefore) * this.zoom;
+      } else {
+        // Two-finger scroll on trackpad → pan the map
+        // Also handles mouse wheel: deltaMode 0 = pixels (trackpad), 1 = lines (mouse)
+        const multiplier = e.deltaMode === 1 ? 20 : 1;
+        this.cameraX -= e.deltaX * multiplier;
+        this.cameraY -= e.deltaY * multiplier;
+      }
     }, { passive: false });
 
     // Keyboard shortcuts for zoom
