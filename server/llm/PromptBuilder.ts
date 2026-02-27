@@ -46,7 +46,6 @@ Map reference (40x30 grid):
 - Hills near the passages provide scouting bonuses.
 - "north" means low y values, "south" means high y values, "left/west" means low x, "right/east" means high x.
 - "center" or "middle" means around x=20, y=14.
-- Clamp all targets within map bounds: x between 0-39, y between 0-29.
 `;
 
 /**
