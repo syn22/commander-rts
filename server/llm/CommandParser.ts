@@ -57,7 +57,7 @@ export async function parseCommand(
 
     const message = await client.messages.create({
       model: selectedModel,
-      max_tokens: 1536,
+      max_tokens: 4096,
       system,
       messages: [{ role: 'user', content: user }],
       temperature: 0, // Deterministic for consistent JSON formatting

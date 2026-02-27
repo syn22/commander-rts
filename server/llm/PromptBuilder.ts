@@ -34,16 +34,19 @@ Example 2 (splitting into groups - MUST include ALL units):
 Example 3 (need clarification):
 {"actions":[],"response":"Which archers? You have 2 groups.","needsClarification":true}
 
-CRITICAL: Your entire response must be a single line of valid JSON. No markdown, no code blocks, no explanation text.
+RELATIVE MOVEMENT: When the player says "move X tiles/blocks forward/east", compute each unit's new position by adding X to their current x. "backward/west" subtracts X from x. "north" subtracts X from y. "south" adds X to y. You MUST generate one action per unit using their actual current position from the game state — do not skip any units.
+
+CRITICAL: Your entire response must be a single line of valid JSON. No markdown, no code blocks, no explanation text. You MUST emit an action for EVERY unit mentioned — never return actions:[] if you understood the command.
 
 Map reference (40x30 grid):
-- Player 1 base is on the LEFT side (x=2, y=14).
-- Player 2 base is on the RIGHT side (x=37, y=14).
+- Player 1 base is on the LEFT side (x=2, y=14). For P1, "forward" = east = increasing x.
+- Player 2 base is on the RIGHT side (x=37, y=14). For P2, "forward" = west = decreasing x.
 - The center of the map has a lake with rock borders, blocking direct east-west movement through the middle.
 - Three passages around the lake: NORTH (around y=6-8), and SOUTH (around y=21-23).
 - Hills near the passages provide scouting bonuses.
 - "north" means low y values, "south" means high y values, "left/west" means low x, "right/east" means high x.
 - "center" or "middle" means around x=20, y=14.
+- Clamp all targets within map bounds: x between 0-39, y between 0-29.
 `;
 
 /**
