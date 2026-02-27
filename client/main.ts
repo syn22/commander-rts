@@ -5,7 +5,7 @@ import { UIRenderer } from './renderer/UIRenderer.js';
 import { CommandInput } from './input/CommandInput.js';
 import { ScrollEditor } from './input/ScrollEditor.js';
 import { LandingAnimation } from './landing-animation.js';
-import { GameStateUpdate, PlayerId, GameMode, LobbyInfo } from '../shared/types.js';
+import { GameStateUpdate, PlayerId, GameMode, LobbyInfo, LevelInfo, LevelCompleteData } from '../shared/types.js';
 
 //
 // Client entry point — lobby + game flow
@@ -19,8 +19,36 @@ let opponentName: string = '';
 let gameInitialized = false;
 let lastCommand: string = ''; // Store last command for debug panel
 
+// Level state
+let currentLevelId: number | null = null;
+let levelStarsData: Record<number, { stars: number; bestTime: number }> = {};
+let cachedLevels: LevelInfo[] = [];
+
 // Lobby state
 let joiningLobbyId: string | null = null;  // tracks which lobby we're joining (for password modal)
+
+// Load saved level progress from localStorage
+function loadLevelProgress(): void {
+  try {
+    const saved = localStorage.getItem('commander_rts_levels');
+    if (saved) {
+      levelStarsData = JSON.parse(saved);
+    }
+  } catch { /* ignore */ }
+}
+
+function saveLevelProgress(): void {
+  localStorage.setItem('commander_rts_levels', JSON.stringify(levelStarsData));
+}
+
+function isLevelUnlocked(levelId: number): boolean {
+  if (levelId === 1) return true;
+  // Level N is unlocked if level N-1 has at least 1 star
+  const prev = levelStarsData[levelId - 1];
+  return prev !== undefined && prev.stars >= 1;
+}
+
+loadLevelProgress();
 
 // Create components
 const socket = new SocketClient();
@@ -43,10 +71,12 @@ const landingPage = document.getElementById('landing-page')!;
 const lobbyScreen = document.getElementById('lobby-screen')!;
 const waitingScreen = document.getElementById('waiting-screen')!;
 const gameScreen = document.getElementById('game-screen')!;
+const levelSelectScreen = document.getElementById('level-select-screen')!;
 
 // Lobby
 const playerNameInput = document.getElementById('player-name-input') as HTMLInputElement;
 const btnSingleplayer = document.getElementById('btn-singleplayer')!;
+const btnCampaign = document.getElementById('btn-campaign')!;
 const btnMultiplayer = document.getElementById('btn-multiplayer')!;
 const lobbyBrowser = document.getElementById('lobby-browser')!;
 const lobbyListEl = document.getElementById('lobby-list')!;
@@ -55,6 +85,10 @@ const btnRefreshLobbies = document.getElementById('btn-refresh-lobbies')!;
 const btnCreateLobby = document.getElementById('btn-create-lobby')!;
 const btnBackToMenu = document.getElementById('btn-back-to-menu')!;
 const modeButtons = document.getElementById('mode-buttons')!;
+
+// Level select
+const levelCardsContainer = document.getElementById('level-cards-container')!;
+const btnBackFromLevels = document.getElementById('btn-back-from-levels')!;
 
 // Waiting screen
 const waitingLobbyName = document.getElementById('waiting-lobby-name')!;
@@ -83,8 +117,10 @@ const leaderboardList = document.getElementById('leaderboard-list')!;
 const chatLog = document.getElementById('chat-log')!;
 const gameOverEl = document.getElementById('game-over')!;
 const gameOverText = document.getElementById('game-over-text')!;
+const gameOverStars = document.getElementById('game-over-stars')!;
 const gameOverStats = document.getElementById('game-over-stats')!;
 const restartBtn = document.getElementById('restart-btn')!;
+const nextLevelBtn = document.getElementById('next-level-btn')!;
 const backToLobbyBtn = document.getElementById('back-to-lobby-btn')!;
 const leaveBtn = document.getElementById('leave-btn')!;
 const opponentBar = document.getElementById('opponent-bar')!;
@@ -106,13 +142,15 @@ const landingPlayBtn = document.getElementById('landing-play-btn')!;
 // Screen management
 //
 
-function showScreen(screen: 'landing' | 'lobby' | 'waiting' | 'game'): void {
+function showScreen(screen: 'landing' | 'lobby' | 'waiting' | 'game' | 'levels'): void {
   landingPage.classList.toggle('hidden', screen !== 'landing');
   lobbyScreen.classList.toggle('hidden', screen !== 'lobby');
   lobbyScreen.style.display = screen === 'lobby' ? 'flex' : 'none';
   waitingScreen.classList.toggle('active', screen === 'waiting');
   waitingScreen.style.display = screen === 'waiting' ? 'flex' : 'none';
   gameScreen.classList.toggle('active', screen === 'game');
+  levelSelectScreen.classList.toggle('active', screen === 'levels');
+  levelSelectScreen.style.display = screen === 'levels' ? 'flex' : 'none';
 
   if (screen === 'game') {
     gameRenderer.resize();
@@ -127,6 +165,23 @@ function showError(message: string): void {
   errorToast.textContent = message;
   errorToast.classList.add('active');
   setTimeout(() => errorToast.classList.remove('active'), 3000);
+}
+
+//
+// Star rendering helpers
+//
+
+function renderStarsHtml(earned: number, size: 'small' | 'large' = 'small'): string {
+  const starChar = size === 'large' ? '\u2B50' : '\u2605';
+  let html = '';
+  for (let i = 1; i <= 3; i++) {
+    if (i <= earned) {
+      html += `<span class="star-earned">${starChar}</span>`;
+    } else {
+      html += `<span class="star-empty">${starChar}</span>`;
+    }
+  }
+  return html;
 }
 
 //
@@ -234,6 +289,52 @@ function loadLeaderboard(): void {
 }
 
 //
+// Level select UI
+//
+
+function renderLevelSelect(levels: LevelInfo[]): void {
+  cachedLevels = levels;
+  levelCardsContainer.innerHTML = '';
+
+  for (const level of levels) {
+    const unlocked = isLevelUnlocked(level.id);
+    const progress = levelStarsData[level.id];
+    const card = document.createElement('div');
+    card.className = `level-card${unlocked ? '' : ' locked'}`;
+
+    const bestTimeStr = progress
+      ? `${Math.floor(progress.bestTime / 60)}:${(progress.bestTime % 60).toString().padStart(2, '0')}`
+      : '--:--';
+
+    card.innerHTML = `
+      <div class="level-number">${unlocked ? level.id : '\uD83D\uDD12'}</div>
+      <div class="level-info">
+        <div class="level-name">${escapeHtml(level.name)}</div>
+        <div class="level-description">${escapeHtml(level.description)}</div>
+      </div>
+      <div class="level-stars">${renderStarsHtml(progress?.stars || 0)}</div>
+      <div class="level-best-time">${bestTimeStr}</div>
+    `;
+
+    if (unlocked) {
+      card.addEventListener('click', () => {
+        currentLevelId = level.id;
+        socket.startLevel(getPlayerName(), level.id);
+      });
+    }
+
+    levelCardsContainer.appendChild(card);
+  }
+}
+
+function showLevelSelect(): void {
+  showScreen('levels');
+  socket.getLevels((levels) => {
+    renderLevelSelect(levels);
+  });
+}
+
+//
 // Lobby UI Logic
 //
 
@@ -244,8 +345,14 @@ landingPlayBtn.addEventListener('click', () => {
   loadLeaderboard();
 });
 
-// Single player button
+// Campaign button — show level select
+btnCampaign.addEventListener('click', () => {
+  showLevelSelect();
+});
+
+// Free play (singleplayer) button
 btnSingleplayer.addEventListener('click', () => {
+  currentLevelId = null;
   socket.startSingleplayer(getPlayerName());
 });
 
@@ -256,10 +363,16 @@ btnMultiplayer.addEventListener('click', () => {
   socket.searchLobbies();
 });
 
-// Back to menu
+// Back to menu from lobby browser
 btnBackToMenu.addEventListener('click', () => {
   lobbyBrowser.classList.remove('active');
   modeButtons.style.display = 'flex';
+});
+
+// Back from level select
+btnBackFromLevels.addEventListener('click', () => {
+  showScreen('lobby');
+  lobbyScreen.classList.add('active');
 });
 
 // Refresh lobbies
@@ -342,7 +455,7 @@ function renderLobbyList(lobbies: LobbyInfo[]): void {
       </div>
       <div class="lobby-item-right">
         <span class="lobby-item-players">${lobby.playerCount}/2</span>
-        ${lobby.hasPassword ? '<span class="lobby-item-lock">🔒</span>' : ''}
+        ${lobby.hasPassword ? '<span class="lobby-item-lock">\uD83D\uDD12</span>' : ''}
         <span class="lobby-item-status ${lobby.status === 'waiting' ? 'status-waiting' : 'status-playing'}">
           ${lobby.status === 'waiting' ? 'Open' : 'In Game'}
         </span>
@@ -388,7 +501,9 @@ function startGame(data: GameStartingData): void {
 
   // Clear chat and add welcome
   clearChatLog();
-  if (myGameMode === 'singleplayer') {
+  if (currentLevelId) {
+    addChatMessage(`Level ${currentLevelId}: ${opponentName}. Command your army to defeat all enemies!`, 'system-msg');
+  } else if (myGameMode === 'singleplayer') {
     addChatMessage(`Playing vs AI Commander. Your units deal full damage, AI deals half. Type commands to control your army.`, 'system-msg');
   } else {
     addChatMessage(`Game started vs ${opponentName}. You are Player ${myPlayerId}. Type commands to control your army.`, 'system-msg');
@@ -415,20 +530,47 @@ function showGameOver(state: GameStateUpdate): void {
   const secs = state.gameTime % 60;
   gameOverStats.textContent = `Game duration: ${mins}:${secs.toString().padStart(2, '0')}`;
 
+  // Clear stars display
+  gameOverStars.innerHTML = '';
+  nextLevelBtn.style.display = 'none';
+
   // Submit victory to leaderboard only for singleplayer wins
   if (won && myGameMode === 'singleplayer') {
     const playerName = getPlayerName();
-    socket.submitVictory(playerName, state.gameTime, myGameMode);
+    socket.submitVictory(playerName, state.gameTime, myGameMode, currentLevelId ?? undefined);
   }
 
   gameOverEl.classList.add('active');
 }
+
+// Handle level completion (with stars)
+socket.setOnLevelComplete((data: LevelCompleteData) => {
+  // Update local progress
+  const existing = levelStarsData[data.levelId];
+  if (!existing || data.stars > existing.stars || (data.stars === existing.stars && data.timeSeconds < existing.bestTime)) {
+    levelStarsData[data.levelId] = {
+      stars: Math.max(existing?.stars || 0, data.stars),
+      bestTime: existing ? Math.min(existing.bestTime, data.timeSeconds) : data.timeSeconds,
+    };
+    saveLevelProgress();
+  }
+
+  // Show stars on game over
+  gameOverStars.innerHTML = renderStarsHtml(data.stars, 'large');
+
+  // Show next level button if there's a next level and it's now unlocked
+  const nextId = data.levelId + 1;
+  if (nextId <= 5 && isLevelUnlocked(nextId)) {
+    nextLevelBtn.style.display = 'inline-block';
+  }
+});
 
 function returnToLobby(): void {
   gameOverEl.classList.remove('active');
   latestState = null;
   gameInitialized = false;
   opponentBar.classList.remove('active');
+  currentLevelId = null;
 
   // If in multiplayer, leave the lobby
   if (myGameMode === 'multiplayer') {
@@ -447,6 +589,18 @@ restartBtn.addEventListener('click', () => {
   socket.restartGame();
   clearChatLog();
   addChatMessage('Game restarted.', 'system-msg');
+});
+
+// Next level
+nextLevelBtn.addEventListener('click', () => {
+  if (currentLevelId) {
+    const nextId = currentLevelId + 1;
+    if (nextId <= 5) {
+      gameOverEl.classList.remove('active');
+      currentLevelId = nextId;
+      socket.startLevel(getPlayerName(), nextId);
+    }
+  }
 });
 
 // Back to menu

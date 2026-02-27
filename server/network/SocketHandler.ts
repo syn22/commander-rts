@@ -2,10 +2,11 @@ import { Server, Socket } from 'socket.io';
 import { GameEngine } from '../game/GameEngine.js';
 import { parseCommand } from '../llm/CommandParser.js';
 import { findPath } from '../game/Pathfinding.js';
-import { ActionType, PlayerId, LLMAction, GameStateUpdate, GameMode, LobbyInfo, LobbyJoinResult } from '../../shared/types.js';
+import { ActionType, PlayerId, LLMAction, GameStateUpdate, GameMode, LobbyInfo, LobbyJoinResult, LevelInfo } from '../../shared/types.js';
 import { Unit, UnitOrder } from '../game/Unit.js';
 import { randomBytes } from 'crypto';
 import { LeaderboardManager } from '../leaderboard/LeaderboardManager.js';
+import { LEVELS, getLevelById, calculateStars } from '../game/levels/LevelDefinitions.js';
 
 //
 // Socket.io event handler — lobby + singleplayer support
@@ -30,6 +31,7 @@ interface PlayerSession {
   playerId?: PlayerId;
   // Singleplayer session (no lobby)
   soloEngine?: GameEngine;
+  currentLevelId?: number;
 }
 
 // Track all active sessions and lobbies
@@ -102,6 +104,68 @@ export function setupSocketHandlers(io: Server): void {
       socket.emit('initial_state', initialState);
 
       console.log(`[${socket.id}] Started singleplayer as "${sess.playerName}"`);
+    });
+
+    //
+    // Campaign levels
+    //
+
+    socket.on('get_levels', () => {
+      const levelInfos: LevelInfo[] = LEVELS.map(l => ({
+        id: l.id,
+        name: l.name,
+        description: l.description,
+        stars: l.stars,
+      }));
+      socket.emit('levels_data', levelInfos);
+    });
+
+    socket.on('start_level', (data: { playerName: string; levelId: number }) => {
+      const sess = sessions.get(socket.id);
+      if (!sess) return;
+
+      const levelDef = getLevelById(data.levelId);
+      if (!levelDef) {
+        socket.emit('lobby_error', { message: 'Level not found.' });
+        return;
+      }
+
+      // Clean up any existing game
+      cleanupSession(socket.id, io);
+
+      sess.playerName = data.playerName || 'Commander';
+      sess.playerId = 1;
+      sess.currentLevelId = data.levelId;
+
+      const engine = new GameEngine('singleplayer', data.levelId);
+      sess.soloEngine = engine;
+
+      engine.start((update: GameStateUpdate, player: PlayerId) => {
+        if (player === 1 && socket.connected) {
+          socket.emit('game_state_update', update);
+
+          // Check for level completion
+          if (update.gameOver && update.winner === 1) {
+            const stars = calculateStars(levelDef, update.gameTime);
+            socket.emit('level_complete', {
+              levelId: data.levelId,
+              timeSeconds: update.gameTime,
+              stars,
+            });
+          }
+        }
+      });
+
+      const initialState = engine.getStateForPlayer(1);
+      socket.emit('game_starting', {
+        playerId: 1 as PlayerId,
+        playerName: sess.playerName,
+        opponentName: `Level ${data.levelId}: ${levelDef.name}`,
+        gameMode: 'singleplayer' as GameMode,
+      });
+      socket.emit('initial_state', initialState);
+
+      console.log(`[${socket.id}] Started level ${data.levelId} "${levelDef.name}" as "${sess.playerName}"`);
     });
 
     //
@@ -319,28 +383,46 @@ export function setupSocketHandlers(io: Server): void {
       if (!sess) return;
 
       if (sess.soloEngine) {
-        // Singleplayer restart
+        // Singleplayer restart (with level support)
         sess.soloEngine.stop();
-        const engine = new GameEngine('singleplayer');
+        const levelId = sess.currentLevelId;
+        const engine = new GameEngine('singleplayer', levelId);
         sess.soloEngine = engine;
 
-        engine.start((update: GameStateUpdate, player: PlayerId) => {
-          if (player === 1 && socket.connected) {
-            socket.emit('game_state_update', update);
-          }
-        });
+        if (levelId) {
+          const levelDef = getLevelById(levelId);
+          engine.start((update: GameStateUpdate, player: PlayerId) => {
+            if (player === 1 && socket.connected) {
+              socket.emit('game_state_update', update);
+              if (update.gameOver && update.winner === 1 && levelDef) {
+                const stars = calculateStars(levelDef, update.gameTime);
+                socket.emit('level_complete', {
+                  levelId,
+                  timeSeconds: update.gameTime,
+                  stars,
+                });
+              }
+            }
+          });
+        } else {
+          engine.start((update: GameStateUpdate, player: PlayerId) => {
+            if (player === 1 && socket.connected) {
+              socket.emit('game_state_update', update);
+            }
+          });
+        }
 
         const initialState = engine.getStateForPlayer(1);
         socket.emit('initial_state', initialState);
-        console.log(`[${socket.id}] Singleplayer game restarted`);
+        console.log(`[${socket.id}] Singleplayer game restarted${levelId ? ` (level ${levelId})` : ''}`);
       }
       // For multiplayer, client should go back to lobby via 'leave_lobby'
     });
 
     // Submit victory to leaderboard
-    socket.on('submit_victory', (data: { playerName: string; timeSeconds: number; gameMode: GameMode }) => {
-      leaderboard.addEntry(data.playerName, data.timeSeconds, data.gameMode);
-      console.log(`[${socket.id}] Victory recorded: ${data.playerName} - ${data.timeSeconds}s (${data.gameMode})`);
+    socket.on('submit_victory', (data: { playerName: string; timeSeconds: number; gameMode: GameMode; levelId?: number }) => {
+      leaderboard.addEntry(data.playerName, data.timeSeconds, data.gameMode, data.levelId);
+      console.log(`[${socket.id}] Victory recorded: ${data.playerName} - ${data.timeSeconds}s (${data.gameMode}${data.levelId ? ` level ${data.levelId}` : ''})`);
     });
 
     // Get leaderboard (only singleplayer)

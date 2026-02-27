@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client';
-import type { GameStateUpdate, PlayerId, GameMode, LobbyInfo } from '../../shared/types.js';
+import type { GameStateUpdate, PlayerId, GameMode, LobbyInfo, LevelInfo, LevelCompleteData } from '../../shared/types.js';
 
 //
 // Socket.io client — lobby + singleplayer support
@@ -23,6 +23,7 @@ export class SocketClient {
   private onLobbyError: ((data: { message: string }) => void) | null = null;
   private onLobbyLeft: (() => void) | null = null;
   private onOpponentDisconnected: ((data: { message: string }) => void) | null = null;
+  private onLevelComplete: ((data: LevelCompleteData) => void) | null = null;
 
   constructor() {
     // Connect to the server — auto-detect host for deployment
@@ -75,6 +76,10 @@ export class SocketClient {
     this.socket.on('opponent_disconnected', (data: { message: string }) => {
       if (this.onOpponentDisconnected) this.onOpponentDisconnected(data);
     });
+
+    this.socket.on('level_complete', (data: LevelCompleteData) => {
+      if (this.onLevelComplete) this.onLevelComplete(data);
+    });
   }
 
   // Setters for callbacks
@@ -87,6 +92,7 @@ export class SocketClient {
   setOnLobbyError(cb: (data: { message: string }) => void): void { this.onLobbyError = cb; }
   setOnLobbyLeft(cb: () => void): void { this.onLobbyLeft = cb; }
   setOnOpponentDisconnected(cb: (data: { message: string }) => void): void { this.onOpponentDisconnected = cb; }
+  setOnLevelComplete(cb: (data: LevelCompleteData) => void): void { this.onLevelComplete = cb; }
 
   // Game actions
   sendCommand(command: string, scroll?: string, model?: string): void {
@@ -122,9 +128,19 @@ export class SocketClient {
     this.socket.emit('leave_lobby');
   }
 
+  // Levels
+  startLevel(playerName: string, levelId: number): void {
+    this.socket.emit('start_level', { playerName, levelId });
+  }
+
+  getLevels(callback: (levels: LevelInfo[]) => void): void {
+    this.socket.once('levels_data', callback);
+    this.socket.emit('get_levels');
+  }
+
   // Leaderboard
-  submitVictory(playerName: string, timeSeconds: number, gameMode: GameMode): void {
-    this.socket.emit('submit_victory', { playerName, timeSeconds, gameMode });
+  submitVictory(playerName: string, timeSeconds: number, gameMode: GameMode, levelId?: number): void {
+    this.socket.emit('submit_victory', { playerName, timeSeconds, gameMode, levelId });
   }
 
   getLeaderboard(callback: (entries: any[]) => void): void {
