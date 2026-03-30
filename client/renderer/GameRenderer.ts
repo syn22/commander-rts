@@ -76,6 +76,7 @@ interface UnitVisual {
   targetX: number;
   targetY: number;
   lastUpdate: number;
+  facingRight: boolean;
 }
 
 // ---- Attack animation ----
@@ -314,15 +315,18 @@ export class GameRenderer {
       let vis = this.unitVisuals.get(unit.id);
       if (!vis || !this.previousUnitIds.has(unit.id)) {
         // First time seeing this unit OR unit re-entered vision — snap to position
-        // This prevents leaking enemy movement through fog of war interpolation
-        vis = { renderX: targetX, renderY: targetY, targetX, targetY, lastUpdate: now };
+        vis = { renderX: targetX, renderY: targetY, targetX, targetY, lastUpdate: now, facingRight: true };
         this.unitVisuals.set(unit.id, vis);
       } else {
+        // Update facing direction before lerp
+        const dx = targetX - vis.renderX;
+        if (Math.abs(dx) > 2) vis.facingRight = dx > 0;
+
         vis.targetX = targetX;
         vis.targetY = targetY;
 
         // Lerp toward target
-        const dt = Math.min((now - vis.lastUpdate) / 1000, 0.1); // cap delta
+        const dt = Math.min((now - vis.lastUpdate) / 1000, 0.1);
         const factor = 1 - Math.exp(-this.LERP_SPEED * dt);
         vis.renderX += (vis.targetX - vis.renderX) * factor;
         vis.renderY += (vis.targetY - vis.renderY) * factor;
@@ -592,6 +596,21 @@ export class GameRenderer {
   //
   // Units
   //
+  // Deterministic sub-tile slot so stacked units don't fully overlap.
+  // Unit number (e.g. "1_archer_7" → 7) maps to a fixed small offset.
+  private getUnitSlot(unitId: string): { dx: number; dy: number } {
+    const match = unitId.match(/_(\d+)$/);
+    const n = match ? (parseInt(match[1]) - 1) : 0;
+    const offsets = [
+      { dx:  0, dy:  0 },   { dx: -8, dy: -6 },  { dx:  8, dy: -6 },
+      { dx: -8, dy:  6 },   { dx:  8, dy:  6 },   { dx:  0, dy: -10 },
+      { dx:  0, dy: 10 },   { dx: -11, dy: 0 },   { dx: 11, dy:  0 },
+      { dx:-11, dy: -8 },   { dx: 11, dy: -8 },   { dx:-11, dy:  8 },
+      { dx: 11, dy:  8 },   { dx:  0, dy:-14 },   { dx:  0, dy: 14 },
+    ];
+    return offsets[Math.max(0, n) % offsets.length];
+  }
+
   private drawUnits(units: UnitData[], fogMap: FogState[][]): void {
     const ctx = this.ctx;
     const now = this.timeAccum;
@@ -600,11 +619,14 @@ export class GameRenderer {
       const fog = fogMap[unit.position.y]?.[unit.position.x] ?? FogState.UNEXPLORED;
       if (fog !== FogState.VISIBLE) continue;
 
-      const vis = this.getUnitRenderPos(unit.id);
-      if (!vis) continue;
+      const visData = this.unitVisuals.get(unit.id);
+      if (!visData) continue;
 
-      const px = vis.x;
-      const py = vis.y;
+      // Apply sub-tile slot offset so stacked units spread apart
+      const slot = this.getUnitSlot(unit.id);
+      const px = visData.renderX + slot.dx;
+      const py = visData.renderY + slot.dy;
+      const facingRight = visData.facingRight;
 
       // Subtle glow ring for own units
       if (unit.owner === this.myPlayerId) {
@@ -615,7 +637,7 @@ export class GameRenderer {
       }
 
       ctx.save();
-      this.drawCharacterSprite(unit, px, py, now);
+      this.drawCharacterSprite(unit, px, py, now, facingRight);
       ctx.restore();
 
       // HP bar above sprite
@@ -630,30 +652,36 @@ export class GameRenderer {
     }
   }
 
-  private drawCharacterSprite(unit: UnitData, cx: number, cy: number, now: number): void {
-    const ctx = this.ctx;
+  private drawCharacterSprite(unit: UnitData, cx: number, cy: number, now: number, facingRight: boolean): void {
     const isMoving = unit.state === UnitState.MOVING;
     const isAttacking = unit.state === UnitState.ATTACKING;
 
-    // Bob & breathe animation
+    // Vertical bob only (leg swing handled per-sprite)
     const breath = Math.sin(now / 900) * 1;
-    const walkBob = isMoving ? Math.sin(now / 180) * 2.5 : 0;
     const attackBob = isAttacking ? Math.abs(Math.sin(now / 120)) * -2 : 0;
-    const dy = breath + walkBob + attackBob;
+    const dy = breath + attackBob;
 
     const armor = PLAYER_ARMOR[unit.owner];
     const armorLight = PLAYER_ARMOR_LIGHT[unit.owner];
     const armorDark = PLAYER_ARMOR_DARK[unit.owner];
 
+    // Horizontal flip for facing left
+    const ctx = this.ctx;
+    if (!facingRight) {
+      ctx.translate(cx, 0);
+      ctx.scale(-1, 1);
+      ctx.translate(-cx, 0);
+    }
+
     switch (unit.type) {
       case UnitType.FOOTMAN:
-        this.drawFootman(cx, cy + dy, armor, armorLight, armorDark, isAttacking, now);
+        this.drawFootman(cx, cy + dy, armor, armorLight, armorDark, isMoving, isAttacking, now);
         break;
       case UnitType.ARCHER:
-        this.drawArcher(cx, cy + dy, armor, armorLight, armorDark, isAttacking, now);
+        this.drawArcher(cx, cy + dy, armor, armorLight, armorDark, isMoving, isAttacking, now);
         break;
       case UnitType.CAVALRY:
-        this.drawCavalry(cx, cy + dy, armor, armorLight, armorDark, isAttacking, now);
+        this.drawCavalry(cx, cy + dy, armor, armorLight, armorDark, isMoving, isAttacking, now);
         break;
       case UnitType.CATAPULT:
         this.drawCatapult(cx, cy, armor, armorDark, now);
@@ -665,20 +693,25 @@ export class GameRenderer {
   private drawFootman(
     cx: number, cy: number,
     armor: string, armorLight: string, armorDark: string,
-    isAttacking: boolean, now: number,
+    isMoving: boolean, isAttacking: boolean, now: number,
   ): void {
     const ctx = this.ctx;
-    const s = TILE_SIZE / 36; // scale factor
+    const s = TILE_SIZE / 36;
 
-    // Boots
-    ctx.fillStyle = '#2a1a0a';
-    ctx.fillRect(cx - 6 * s, cy + 10 * s, 5 * s, 5 * s);
-    ctx.fillRect(cx + 1 * s, cy + 10 * s, 5 * s, 5 * s);
+    // Leg swing — left and right alternate phases when walking
+    const swing = isMoving ? Math.sin(now / 130) * 5 * s : 0;
 
-    // Legs (greaves)
+    // Left leg (greave + boot)
     ctx.fillStyle = '#666';
-    ctx.fillRect(cx - 6 * s, cy + 3 * s, 5 * s, 8 * s);
-    ctx.fillRect(cx + 1 * s, cy + 3 * s, 5 * s, 8 * s);
+    ctx.fillRect(cx - 6 * s + swing, cy + 3 * s, 5 * s, 8 * s);
+    ctx.fillStyle = '#2a1a0a';
+    ctx.fillRect(cx - 6 * s + swing, cy + 10 * s, 5 * s, 5 * s);
+
+    // Right leg (opposite phase)
+    ctx.fillStyle = '#666';
+    ctx.fillRect(cx + 1 * s - swing, cy + 3 * s, 5 * s, 8 * s);
+    ctx.fillStyle = '#2a1a0a';
+    ctx.fillRect(cx + 1 * s - swing, cy + 10 * s, 5 * s, 5 * s);
 
     // Body armor (breastplate)
     ctx.fillStyle = armor;
@@ -777,20 +810,25 @@ export class GameRenderer {
   private drawArcher(
     cx: number, cy: number,
     armor: string, armorLight: string, armorDark: string,
-    isAttacking: boolean, now: number,
+    isMoving: boolean, isAttacking: boolean, now: number,
   ): void {
     const ctx = this.ctx;
     const s = TILE_SIZE / 36;
 
-    // Boots
-    ctx.fillStyle = '#3a2510';
-    ctx.fillRect(cx - 5 * s, cy + 10 * s, 4 * s, 5 * s);
-    ctx.fillRect(cx + 1 * s, cy + 10 * s, 4 * s, 5 * s);
+    // Leg swing when walking
+    const swing = isMoving ? Math.sin(now / 115) * 5 * s : 0;
 
-    // Legs (leather)
+    // Left leg (leather + boot)
     ctx.fillStyle = '#6b4226';
-    ctx.fillRect(cx - 5 * s, cy + 3 * s, 4 * s, 8 * s);
-    ctx.fillRect(cx + 1 * s, cy + 3 * s, 4 * s, 8 * s);
+    ctx.fillRect(cx - 5 * s + swing, cy + 3 * s, 4 * s, 8 * s);
+    ctx.fillStyle = '#3a2510';
+    ctx.fillRect(cx - 5 * s + swing, cy + 10 * s, 4 * s, 5 * s);
+
+    // Right leg (opposite phase)
+    ctx.fillStyle = '#6b4226';
+    ctx.fillRect(cx + 1 * s - swing, cy + 3 * s, 4 * s, 8 * s);
+    ctx.fillStyle = '#3a2510';
+    ctx.fillRect(cx + 1 * s - swing, cy + 10 * s, 4 * s, 5 * s);
 
     // Tunic/light body
     ctx.fillStyle = armor;
@@ -878,7 +916,7 @@ export class GameRenderer {
   private drawCavalry(
     cx: number, cy: number,
     armor: string, armorLight: string, armorDark: string,
-    isAttacking: boolean, now: number,
+    isMoving: boolean, isAttacking: boolean, now: number,
   ): void {
     const ctx = this.ctx;
     const s = TILE_SIZE / 36;

@@ -19,7 +19,7 @@ import {
   TileType,
   CombatEvent,
 } from '../../shared/types.js';
-import { GAME_CONFIG } from './Config.js';
+import { GAME_CONFIG, TERRAIN_CONFIG } from './Config.js';
 import { LevelDefinition, getLevelById } from './levels/LevelDefinitions.js';
 
 //
@@ -192,9 +192,18 @@ export class GameEngine {
       if (isLastStep) {
         const claimant = destinationClaims.get(posKey);
         if (claimant && claimant !== unit.id) {
-          // Final destination is occupied/claimed - stop here (one tile before)
-          unit.clearOrder();
-          unit.state = UnitState.IDLE;
+          // Try the nearest free adjacent walkable tile instead of just stopping
+          const alt = this.findFreeAdjacentTile(nextPos, destinationClaims, unit.id);
+          if (alt) {
+            unit.position = { ...alt };
+            destinationClaims.set(`${alt.x},${alt.y}`, unit.id);
+            unit.order.pathIndex!++;
+            unit.moveProgress -= 1;
+            unit.state = UnitState.IDLE;
+          } else {
+            unit.clearOrder();
+            unit.state = UnitState.IDLE;
+          }
           break;
         }
         // Claim this destination
@@ -212,6 +221,36 @@ export class GameEngine {
     if (unit.order && unit.order.pathIndex! >= path.length) {
       unit.clearOrder();
     }
+  }
+
+  /**
+   * Find the nearest free walkable tile adjacent to `pos` not already claimed.
+   * Used when a unit's final destination is blocked, so it parks one step away.
+   */
+  private findFreeAdjacentTile(
+    pos: { x: number; y: number },
+    claims: Map<string, string>,
+    requesterId: string,
+  ): { x: number; y: number } | null {
+    const neighbors = [
+      { x: pos.x - 1, y: pos.y },
+      { x: pos.x + 1, y: pos.y },
+      { x: pos.x, y: pos.y - 1 },
+      { x: pos.x, y: pos.y + 1 },
+      { x: pos.x - 1, y: pos.y - 1 },
+      { x: pos.x + 1, y: pos.y - 1 },
+      { x: pos.x - 1, y: pos.y + 1 },
+      { x: pos.x + 1, y: pos.y + 1 },
+    ];
+    for (const n of neighbors) {
+      if (n.x < 0 || n.x >= GAME_CONFIG.MAP_WIDTH) continue;
+      if (n.y < 0 || n.y >= GAME_CONFIG.MAP_HEIGHT) continue;
+      if (!TERRAIN_CONFIG[this.state.map[n.y][n.x]].walkable) continue;
+      const key = `${n.x},${n.y}`;
+      const claimant = claims.get(key);
+      if (!claimant || claimant === requesterId) return n;
+    }
+    return null;
   }
 
   /**
