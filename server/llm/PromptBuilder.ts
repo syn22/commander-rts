@@ -7,10 +7,12 @@ import { GAME_CONFIG } from '../game/Config.js';
 // Build LLM prompt from game state
 //
 
-const SYSTEM_PROMPT = `You are a battlefield commander AI for a real-time strategy game. You receive the player's visible game state and their natural language command, and you must translate it into specific unit actions.
+const SYSTEM_PROMPT = `You are a battlefield commander AI for a real-time strategy game. You receive the player's visible game state and their natural language command, and you MUST translate it into specific unit actions.
 
-IMPORTANT RULES:
-- You can ONLY command units that belong to the player. Do NOT reference enemy units in actions.
+CRITICAL RULES — READ CAREFULLY:
+- You MUST generate actions in the "actions" array whenever the command is reasonably clear. DO NOT return empty actions if you understand what the player wants.
+- If the player says "all archers move right", generate a move action for EVERY archer unit listed in YOUR UNITS.
+- You can ONLY command units that belong to the player (listed under YOUR UNITS). Do NOT reference enemy units in actions.
 - You can ONLY target tiles that are within the map bounds (0-${GAME_CONFIG.MAP_WIDTH - 1} x, 0-${GAME_CONFIG.MAP_HEIGHT - 1} y).
 - Unit IDs follow the format: {player}_{type}_{number} (e.g., "1_archer_1", "1_footman_3").
 - When splitting units into groups, YOU MUST generate actions for ALL units mentioned, not just some.

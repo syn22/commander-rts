@@ -47,14 +47,6 @@ const PLAYER_GLOW: Record<PlayerId, string> = {
   2: 'rgba(217, 74, 74, 0.35)',
 };
 
-// Emoji icons
-const UNIT_ICONS: Record<UnitType, string> = {
-  [UnitType.FOOTMAN]: '\u2694\uFE0F',
-  [UnitType.ARCHER]: '\uD83C\uDFF9',
-  [UnitType.CAVALRY]: '\uD83D\uDC0E',
-  [UnitType.CATAPULT]: '\uD83D\uDCA3',
-};
-
 const UNIT_LABELS: Record<UnitType, string> = {
   [UnitType.FOOTMAN]: 'FTM',
   [UnitType.ARCHER]: 'ARC',
@@ -62,13 +54,20 @@ const UNIT_LABELS: Record<UnitType, string> = {
   [UnitType.CATAPULT]: 'CAT',
 };
 
-const STATE_ICONS: Record<string, string> = {
-  [UnitState.MOVING]: '→',
-  [UnitState.ATTACKING]: '⚔',
-  [UnitState.IDLE]: '•',
-};
-
 const BASE_ICON = '\uD83C\uDFF0';
+
+const PLAYER_ARMOR: Record<PlayerId, string> = {
+  1: '#2255bb',
+  2: '#bb2222',
+};
+const PLAYER_ARMOR_LIGHT: Record<PlayerId, string> = {
+  1: '#4499ff',
+  2: '#ff5555',
+};
+const PLAYER_ARMOR_DARK: Record<PlayerId, string> = {
+  1: '#112266',
+  2: '#661111',
+};
 
 // ---- Interpolation tracking ----
 interface UnitVisual {
@@ -606,60 +605,458 @@ export class GameRenderer {
 
       const px = vis.x;
       const py = vis.y;
-      const color = PLAYER_COLORS[unit.owner];
-      const lightColor = PLAYER_COLORS_LIGHT[unit.owner];
-      const radius = TILE_SIZE * 0.38;
 
-      const drawY = py;
-
-      // Glow for own units
+      // Subtle glow ring for own units
       if (unit.owner === this.myPlayerId) {
         ctx.fillStyle = PLAYER_GLOW[this.myPlayerId];
         ctx.beginPath();
-        ctx.arc(px, drawY, radius + 4, 0, Math.PI * 2);
+        ctx.arc(px, py, TILE_SIZE * 0.48, 0, Math.PI * 2);
         ctx.fill();
       }
 
-      // Background circle
-      ctx.fillStyle = color;
-      ctx.globalAlpha = 0.6;
-      ctx.beginPath();
-      ctx.arc(px, drawY, radius, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.globalAlpha = 1;
+      ctx.save();
+      this.drawCharacterSprite(unit, px, py, now);
+      ctx.restore();
 
-      // Ring border
-      ctx.strokeStyle = lightColor;
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.arc(px, drawY, radius, 0, Math.PI * 2);
-      ctx.stroke();
-
-      // Emoji icon
-      const icon = UNIT_ICONS[unit.type];
-      ctx.font = `${Math.round(TILE_SIZE * 0.45)}px serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(icon, px, drawY - 1);
-
-      // HP bar
-      this.drawHPBar(px, drawY - radius - 8, TILE_SIZE * 0.7, 4, unit.hp, unit.maxHp);
+      // HP bar above sprite
+      this.drawHPBar(px, py - TILE_SIZE * 0.6 - 6, TILE_SIZE * 0.75, 4, unit.hp, unit.maxHp);
 
       // Unit label below
-      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.fillStyle = 'rgba(255,255,255,0.75)';
       ctx.font = 'bold 8px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(UNIT_LABELS[unit.type], px, drawY + radius + 10);
-
-      // State indicator
-      const stateIcon = STATE_ICONS[unit.state] || '';
-      if (stateIcon && unit.state !== UnitState.IDLE) {
-        ctx.fillStyle = unit.state === UnitState.ATTACKING ? '#ff6644' : '#88ccff';
-        ctx.font = 'bold 10px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(stateIcon, px + radius + 6, drawY - radius);
-      }
+      ctx.textBaseline = 'top';
+      ctx.fillText(UNIT_LABELS[unit.type], px, py + TILE_SIZE * 0.42);
     }
+  }
+
+  private drawCharacterSprite(unit: UnitData, cx: number, cy: number, now: number): void {
+    const ctx = this.ctx;
+    const isMoving = unit.state === UnitState.MOVING;
+    const isAttacking = unit.state === UnitState.ATTACKING;
+
+    // Bob & breathe animation
+    const breath = Math.sin(now / 900) * 1;
+    const walkBob = isMoving ? Math.sin(now / 180) * 2.5 : 0;
+    const attackBob = isAttacking ? Math.abs(Math.sin(now / 120)) * -2 : 0;
+    const dy = breath + walkBob + attackBob;
+
+    const armor = PLAYER_ARMOR[unit.owner];
+    const armorLight = PLAYER_ARMOR_LIGHT[unit.owner];
+    const armorDark = PLAYER_ARMOR_DARK[unit.owner];
+
+    switch (unit.type) {
+      case UnitType.FOOTMAN:
+        this.drawFootman(cx, cy + dy, armor, armorLight, armorDark, isAttacking, now);
+        break;
+      case UnitType.ARCHER:
+        this.drawArcher(cx, cy + dy, armor, armorLight, armorDark, isAttacking, now);
+        break;
+      case UnitType.CAVALRY:
+        this.drawCavalry(cx, cy + dy, armor, armorLight, armorDark, isAttacking, now);
+        break;
+      case UnitType.CATAPULT:
+        this.drawCatapult(cx, cy, armor, armorDark, now);
+        break;
+    }
+  }
+
+  // ---- Footman: heavy armored warrior, sword + shield ----
+  private drawFootman(
+    cx: number, cy: number,
+    armor: string, armorLight: string, armorDark: string,
+    isAttacking: boolean, now: number,
+  ): void {
+    const ctx = this.ctx;
+    const s = TILE_SIZE / 36; // scale factor
+
+    // Boots
+    ctx.fillStyle = '#2a1a0a';
+    ctx.fillRect(cx - 6 * s, cy + 10 * s, 5 * s, 5 * s);
+    ctx.fillRect(cx + 1 * s, cy + 10 * s, 5 * s, 5 * s);
+
+    // Legs (greaves)
+    ctx.fillStyle = '#666';
+    ctx.fillRect(cx - 6 * s, cy + 3 * s, 5 * s, 8 * s);
+    ctx.fillRect(cx + 1 * s, cy + 3 * s, 5 * s, 8 * s);
+
+    // Body armor (breastplate)
+    ctx.fillStyle = armor;
+    ctx.beginPath();
+    ctx.roundRect(cx - 8 * s, cy - 10 * s, 16 * s, 15 * s, 2 * s);
+    ctx.fill();
+
+    // Armor highlight (left-top shine)
+    ctx.fillStyle = armorLight;
+    ctx.globalAlpha = 0.35;
+    ctx.fillRect(cx - 7 * s, cy - 9 * s, 5 * s, 5 * s);
+    ctx.globalAlpha = 1;
+
+    // Armor outline
+    ctx.strokeStyle = armorDark;
+    ctx.lineWidth = 1 * s;
+    ctx.beginPath();
+    ctx.roundRect(cx - 8 * s, cy - 10 * s, 16 * s, 15 * s, 2 * s);
+    ctx.stroke();
+
+    // Shield (left side)
+    ctx.fillStyle = '#8B4513';
+    ctx.beginPath();
+    ctx.roundRect(cx - 14 * s, cy - 9 * s, 7 * s, 12 * s, 2 * s);
+    ctx.fill();
+    ctx.strokeStyle = '#4a2a0a';
+    ctx.lineWidth = 1 * s;
+    ctx.stroke();
+    // Shield boss
+    ctx.fillStyle = '#c8a000';
+    ctx.beginPath();
+    ctx.arc(cx - 10.5 * s, cy - 3 * s, 2 * s, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Sword (right side — raised when attacking)
+    const swordAngle = isAttacking ? -Math.PI / 3 : -Math.PI / 6;
+    const swordX = cx + 8 * s;
+    const swordY = cy - 4 * s;
+    ctx.save();
+    ctx.translate(swordX, swordY);
+    ctx.rotate(swordAngle);
+    // Blade
+    ctx.strokeStyle = '#d0d8e0';
+    ctx.lineWidth = 2.5 * s;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(0, -14 * s);
+    ctx.stroke();
+    // Crossguard
+    ctx.strokeStyle = '#c8a000';
+    ctx.lineWidth = 2 * s;
+    ctx.beginPath();
+    ctx.moveTo(-3 * s, 0);
+    ctx.lineTo(3 * s, 0);
+    ctx.stroke();
+    ctx.restore();
+
+    // Neck
+    ctx.fillStyle = '#f0c080';
+    ctx.fillRect(cx - 2 * s, cy - 13 * s, 4 * s, 4 * s);
+
+    // Head
+    ctx.fillStyle = '#f0c080';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy - 18 * s, 5.5 * s, 5.5 * s, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Helmet
+    ctx.fillStyle = '#888';
+    ctx.beginPath();
+    ctx.arc(cx, cy - 19 * s, 6 * s, Math.PI, 0);
+    ctx.closePath();
+    ctx.fill();
+    // Helmet visor bar
+    ctx.fillStyle = '#555';
+    ctx.fillRect(cx - 5.5 * s, cy - 19 * s, 11 * s, 3 * s);
+    // Helmet outline
+    ctx.strokeStyle = '#444';
+    ctx.lineWidth = 1 * s;
+    ctx.beginPath();
+    ctx.arc(cx, cy - 19 * s, 6 * s, Math.PI, 0);
+    ctx.stroke();
+
+    // Attack flash eyes
+    if (isAttacking) {
+      ctx.fillStyle = '#ff4400';
+      ctx.beginPath();
+      ctx.arc(cx - 2 * s, cy - 18 * s, 1.5 * s, 0, Math.PI * 2);
+      ctx.arc(cx + 2 * s, cy - 18 * s, 1.5 * s, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // ---- Archer: light armor, bow, hood ----
+  private drawArcher(
+    cx: number, cy: number,
+    armor: string, armorLight: string, armorDark: string,
+    isAttacking: boolean, now: number,
+  ): void {
+    const ctx = this.ctx;
+    const s = TILE_SIZE / 36;
+
+    // Boots
+    ctx.fillStyle = '#3a2510';
+    ctx.fillRect(cx - 5 * s, cy + 10 * s, 4 * s, 5 * s);
+    ctx.fillRect(cx + 1 * s, cy + 10 * s, 4 * s, 5 * s);
+
+    // Legs (leather)
+    ctx.fillStyle = '#6b4226';
+    ctx.fillRect(cx - 5 * s, cy + 3 * s, 4 * s, 8 * s);
+    ctx.fillRect(cx + 1 * s, cy + 3 * s, 4 * s, 8 * s);
+
+    // Tunic/light body
+    ctx.fillStyle = armor;
+    ctx.globalAlpha = 0.85;
+    ctx.beginPath();
+    ctx.roundRect(cx - 6 * s, cy - 10 * s, 12 * s, 14 * s, 3 * s);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = armorDark;
+    ctx.lineWidth = 1 * s;
+    ctx.beginPath();
+    ctx.roundRect(cx - 6 * s, cy - 10 * s, 12 * s, 14 * s, 3 * s);
+    ctx.stroke();
+
+    // Quiver (right side)
+    ctx.fillStyle = '#6b4226';
+    ctx.fillRect(cx + 7 * s, cy - 8 * s, 4 * s, 9 * s);
+    // Arrows in quiver
+    ctx.strokeStyle = '#c8a000';
+    ctx.lineWidth = 1 * s;
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.moveTo(cx + 8 * s + i * 1.5 * s, cy - 8 * s);
+      ctx.lineTo(cx + 8 * s + i * 1.5 * s, cy - 14 * s);
+      ctx.stroke();
+    }
+
+    // Bow (left side — draw arc)
+    const bowPull = isAttacking ? 0.3 : 0;
+    ctx.strokeStyle = '#8B4513';
+    ctx.lineWidth = 2.5 * s;
+    ctx.beginPath();
+    ctx.arc(cx - 12 * s + bowPull * 4 * s, cy - 4 * s, 10 * s, -0.9, 0.9);
+    ctx.stroke();
+    // Bowstring
+    ctx.strokeStyle = '#ddd';
+    ctx.lineWidth = 1 * s;
+    ctx.beginPath();
+    ctx.moveTo(cx - 12 * s + bowPull * 4 * s, cy - 4 * s - 9 * s);
+    ctx.lineTo(cx - 4 * s - bowPull * 3 * s, cy - 4 * s);
+    ctx.lineTo(cx - 12 * s + bowPull * 4 * s, cy - 4 * s + 9 * s);
+    ctx.stroke();
+    // Arrow on string when attacking
+    if (isAttacking) {
+      ctx.strokeStyle = '#ddd';
+      ctx.lineWidth = 1.5 * s;
+      ctx.beginPath();
+      ctx.moveTo(cx - 4 * s - bowPull * 3 * s, cy - 4 * s);
+      ctx.lineTo(cx + 4 * s, cy - 4 * s);
+      ctx.stroke();
+    }
+
+    // Neck
+    ctx.fillStyle = '#f0c080';
+    ctx.fillRect(cx - 2 * s, cy - 13 * s, 4 * s, 4 * s);
+
+    // Head
+    ctx.fillStyle = '#f0c080';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy - 18 * s, 5 * s, 5 * s, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Hood
+    ctx.fillStyle = armorDark;
+    ctx.beginPath();
+    ctx.arc(cx, cy - 20 * s, 6 * s, Math.PI, 0);
+    ctx.closePath();
+    ctx.fill();
+    // Hood sides
+    ctx.beginPath();
+    ctx.moveTo(cx - 6 * s, cy - 20 * s);
+    ctx.lineTo(cx - 7 * s, cy - 14 * s);
+    ctx.lineTo(cx - 3 * s, cy - 14 * s);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(cx + 6 * s, cy - 20 * s);
+    ctx.lineTo(cx + 7 * s, cy - 14 * s);
+    ctx.lineTo(cx + 3 * s, cy - 14 * s);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // ---- Cavalry: rider on horseback with lance ----
+  private drawCavalry(
+    cx: number, cy: number,
+    armor: string, armorLight: string, armorDark: string,
+    isAttacking: boolean, now: number,
+  ): void {
+    const ctx = this.ctx;
+    const s = TILE_SIZE / 36;
+    const gallop = Math.sin(now / 160) * 3 * s;
+
+    // Horse legs (4 lines with alternating animation)
+    ctx.strokeStyle = '#5a3a1a';
+    ctx.lineWidth = 2.5 * s;
+    ctx.lineCap = 'round';
+    const legPhase = now / 160;
+    const legSwing = 5 * s;
+    // Front legs
+    ctx.beginPath();
+    ctx.moveTo(cx + 5 * s, cy + 6 * s);
+    ctx.lineTo(cx + 5 * s + Math.sin(legPhase) * legSwing, cy + 15 * s);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx + 2 * s, cy + 6 * s);
+    ctx.lineTo(cx + 2 * s + Math.sin(legPhase + 1) * legSwing, cy + 15 * s);
+    ctx.stroke();
+    // Back legs
+    ctx.beginPath();
+    ctx.moveTo(cx - 5 * s, cy + 6 * s);
+    ctx.lineTo(cx - 5 * s + Math.sin(legPhase + Math.PI) * legSwing, cy + 15 * s);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx - 8 * s, cy + 6 * s);
+    ctx.lineTo(cx - 8 * s + Math.sin(legPhase + Math.PI + 1) * legSwing, cy + 15 * s);
+    ctx.stroke();
+
+    // Horse body (elongated ellipse)
+    ctx.fillStyle = '#7a4a1a';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + 3 * s + gallop * 0.3, 13 * s, 7 * s, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#5a3a0a';
+    ctx.lineWidth = 1 * s;
+    ctx.stroke();
+
+    // Horse neck + head
+    ctx.fillStyle = '#7a4a1a';
+    ctx.beginPath();
+    ctx.ellipse(cx + 10 * s, cy - 4 * s + gallop * 0.3, 4 * s, 7 * s, 0.5, 0, Math.PI * 2);
+    ctx.fill();
+    // Mane
+    ctx.fillStyle = '#3a1a00';
+    ctx.beginPath();
+    ctx.ellipse(cx + 9 * s, cy - 5 * s, 3 * s, 6 * s, 0.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Rider body
+    ctx.fillStyle = armor;
+    ctx.beginPath();
+    ctx.roundRect(cx - 6 * s, cy - 16 * s, 11 * s, 11 * s, 2 * s);
+    ctx.fill();
+    ctx.strokeStyle = armorDark;
+    ctx.lineWidth = 1 * s;
+    ctx.stroke();
+
+    // Lance (tilted forward when attacking)
+    const lanceAngle = isAttacking ? -0.15 : -0.4;
+    ctx.save();
+    ctx.translate(cx + 4 * s, cy - 10 * s);
+    ctx.rotate(lanceAngle);
+    ctx.strokeStyle = '#8B4513';
+    ctx.lineWidth = 2 * s;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(0, -22 * s);
+    ctx.stroke();
+    // Lance tip
+    ctx.fillStyle = '#d0d8e0';
+    ctx.beginPath();
+    ctx.moveTo(0, -22 * s);
+    ctx.lineTo(-2 * s, -18 * s);
+    ctx.lineTo(2 * s, -18 * s);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+
+    // Rider head
+    ctx.fillStyle = '#f0c080';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy - 20 * s, 4.5 * s, 4.5 * s, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Helmet (closed knight helmet)
+    ctx.fillStyle = '#888';
+    ctx.beginPath();
+    ctx.arc(cx, cy - 21 * s, 5 * s, Math.PI, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = armorLight;
+    ctx.globalAlpha = 0.4;
+    ctx.beginPath();
+    ctx.arc(cx - 1 * s, cy - 22 * s, 2.5 * s, Math.PI * 0.8, Math.PI * 1.8);
+    ctx.closePath();
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
+  // ---- Catapult: wooden siege weapon ----
+  private drawCatapult(
+    cx: number, cy: number,
+    armor: string, armorDark: string, now: number,
+  ): void {
+    const ctx = this.ctx;
+    const s = TILE_SIZE / 36;
+
+    // Wheels
+    const wheelY = cy + 9 * s;
+    for (const wx of [cx - 9 * s, cx + 9 * s]) {
+      // Outer wheel
+      ctx.fillStyle = '#5a3a10';
+      ctx.beginPath();
+      ctx.arc(wx, wheelY, 7 * s, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#3a2008';
+      ctx.lineWidth = 1.5 * s;
+      ctx.stroke();
+      // Spokes
+      ctx.strokeStyle = '#3a2008';
+      ctx.lineWidth = 1 * s;
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2 + now / 2000;
+        ctx.beginPath();
+        ctx.moveTo(wx, wheelY);
+        ctx.lineTo(wx + Math.cos(a) * 6 * s, wheelY + Math.sin(a) * 6 * s);
+        ctx.stroke();
+      }
+      // Hub
+      ctx.fillStyle = '#c8a000';
+      ctx.beginPath();
+      ctx.arc(wx, wheelY, 2 * s, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Frame base (axle)
+    ctx.fillStyle = '#6b4226';
+    ctx.fillRect(cx - 12 * s, cy + 5 * s, 24 * s, 5 * s);
+    ctx.strokeStyle = '#3a2008';
+    ctx.lineWidth = 1 * s;
+    ctx.strokeRect(cx - 12 * s, cy + 5 * s, 24 * s, 5 * s);
+
+    // Frame uprights
+    ctx.fillStyle = '#8B5a2a';
+    ctx.fillRect(cx - 10 * s, cy - 5 * s, 4 * s, 12 * s);
+    ctx.fillRect(cx + 6 * s, cy - 5 * s, 4 * s, 12 * s);
+
+    // Cross beam
+    ctx.fillRect(cx - 10 * s, cy - 5 * s, 20 * s, 3 * s);
+
+    // Arm (throwing arm — slightly angled)
+    const armAngle = -0.9 + Math.sin(now / 1200) * 0.15;
+    ctx.save();
+    ctx.translate(cx, cy - 3 * s);
+    ctx.rotate(armAngle);
+    ctx.fillStyle = '#7a4a1a';
+    ctx.fillRect(-2 * s, -20 * s, 4 * s, 22 * s);
+    // Bucket/cup at end
+    ctx.fillStyle = '#5a3010';
+    ctx.beginPath();
+    ctx.arc(0, -20 * s, 4 * s, 0, Math.PI * 2);
+    ctx.fill();
+    // Rock in bucket
+    ctx.fillStyle = '#888';
+    ctx.beginPath();
+    ctx.arc(0, -20 * s, 3 * s, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // Counterweight
+    ctx.save();
+    ctx.translate(cx, cy - 3 * s);
+    ctx.rotate(armAngle + Math.PI);
+    ctx.fillStyle = '#5a3010';
+    ctx.fillRect(-3 * s, 2 * s, 6 * s, 8 * s);
+    ctx.restore();
   }
 
   //
