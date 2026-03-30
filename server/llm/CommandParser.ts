@@ -37,8 +37,9 @@ export async function parseCommand(
   try {
     const client = getClient();
 
+    const model = process.env.LLM_MODEL || 'claude-sonnet-4-6';
     const message = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      model,
       max_tokens: 1024,
       system,
       messages: [{ role: 'user', content: user }],
