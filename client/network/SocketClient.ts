@@ -1,9 +1,9 @@
 import { io, Socket } from 'socket.io-client';
-import type { GameStateUpdate, PlayerId, GameMode, LobbyInfo } from '../../shared/types.js';
+import type { GameStateUpdate, PlayerId, GameMode, LobbyInfo, LevelInfo, LevelCompleteData } from '../../shared/types.js';
 
-// ============================================================
+//
 // Socket.io client — lobby + singleplayer support
-// ============================================================
+//
 
 export interface GameStartingData {
   playerId: PlayerId;
@@ -16,13 +16,14 @@ export class SocketClient {
   private socket: Socket;
   private onStateUpdate: ((state: GameStateUpdate) => void) | null = null;
   private onInitialState: ((state: GameStateUpdate) => void) | null = null;
-  private onCommandResponse: ((response: { message: string; needsClarification?: boolean }) => void) | null = null;
+  private onCommandResponse: ((response: { message: string; needsClarification?: boolean; debug?: any }) => void) | null = null;
   private onGameStarting: ((data: GameStartingData) => void) | null = null;
   private onLobbyCreated: ((data: { lobbyId: string; lobbyName: string; playerId: PlayerId }) => void) | null = null;
   private onLobbyList: ((lobbies: LobbyInfo[]) => void) | null = null;
   private onLobbyError: ((data: { message: string }) => void) | null = null;
   private onLobbyLeft: (() => void) | null = null;
   private onOpponentDisconnected: ((data: { message: string }) => void) | null = null;
+  private onLevelComplete: ((data: LevelCompleteData) => void) | null = null;
 
   constructor() {
     // Connect to the server — auto-detect host for deployment
@@ -47,7 +48,7 @@ export class SocketClient {
       if (this.onInitialState) this.onInitialState(state);
     });
 
-    this.socket.on('command_response', (response: { message: string; needsClarification?: boolean }) => {
+    this.socket.on('command_response', (response: { message: string; needsClarification?: boolean; debug?: any }) => {
       if (this.onCommandResponse) this.onCommandResponse(response);
     });
 
@@ -75,22 +76,27 @@ export class SocketClient {
     this.socket.on('opponent_disconnected', (data: { message: string }) => {
       if (this.onOpponentDisconnected) this.onOpponentDisconnected(data);
     });
+
+    this.socket.on('level_complete', (data: LevelCompleteData) => {
+      if (this.onLevelComplete) this.onLevelComplete(data);
+    });
   }
 
   // Setters for callbacks
   setOnStateUpdate(cb: (state: GameStateUpdate) => void): void { this.onStateUpdate = cb; }
   setOnInitialState(cb: (state: GameStateUpdate) => void): void { this.onInitialState = cb; }
-  setOnCommandResponse(cb: (response: { message: string; needsClarification?: boolean }) => void): void { this.onCommandResponse = cb; }
+  setOnCommandResponse(cb: (response: { message: string; needsClarification?: boolean; debug?: any }) => void): void { this.onCommandResponse = cb; }
   setOnGameStarting(cb: (data: GameStartingData) => void): void { this.onGameStarting = cb; }
   setOnLobbyCreated(cb: (data: { lobbyId: string; lobbyName: string; playerId: PlayerId }) => void): void { this.onLobbyCreated = cb; }
   setOnLobbyList(cb: (lobbies: LobbyInfo[]) => void): void { this.onLobbyList = cb; }
   setOnLobbyError(cb: (data: { message: string }) => void): void { this.onLobbyError = cb; }
   setOnLobbyLeft(cb: () => void): void { this.onLobbyLeft = cb; }
   setOnOpponentDisconnected(cb: (data: { message: string }) => void): void { this.onOpponentDisconnected = cb; }
+  setOnLevelComplete(cb: (data: LevelCompleteData) => void): void { this.onLevelComplete = cb; }
 
   // Game actions
-  sendCommand(command: string, scroll?: string): void {
-    this.socket.emit('send_command', { command, scroll });
+  sendCommand(command: string, scroll?: string, model?: string): void {
+    this.socket.emit('send_command', { command, scroll, model });
   }
 
   requestState(): void {
@@ -120,5 +126,25 @@ export class SocketClient {
 
   leaveLobby(): void {
     this.socket.emit('leave_lobby');
+  }
+
+  // Levels
+  startLevel(playerName: string, levelId: number): void {
+    this.socket.emit('start_level', { playerName, levelId });
+  }
+
+  getLevels(callback: (levels: LevelInfo[]) => void): void {
+    this.socket.once('levels_data', callback);
+    this.socket.emit('get_levels');
+  }
+
+  // Leaderboard
+  submitVictory(playerName: string, timeSeconds: number, gameMode: GameMode, levelId?: number): void {
+    this.socket.emit('submit_victory', { playerName, timeSeconds, gameMode, levelId });
+  }
+
+  getLeaderboard(callback: (entries: any[]) => void): void {
+    this.socket.once('leaderboard_data', callback);
+    this.socket.emit('get_leaderboard');
   }
 }

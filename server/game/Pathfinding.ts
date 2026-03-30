@@ -1,9 +1,9 @@
 import { TileType, Position } from '../../shared/types.js';
 import { TERRAIN_CONFIG } from './Config.js';
 
-// ============================================================
+//
 // A* Pathfinding on the grid
-// ============================================================
+//
 
 interface AStarNode {
   x: number;

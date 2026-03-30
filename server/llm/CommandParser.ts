@@ -5,16 +5,25 @@ import { Base } from '../game/Combat.js';
 import { buildPrompt } from './PromptBuilder.js';
 import { validateActions } from './ActionValidator.js';
 
-// ============================================================
+//
 // LLM Command Parser — sends commands to Claude API
-// ============================================================
+//
 
 let anthropicClient: Anthropic | null = null;
 
 function getClient(): Anthropic {
   if (!anthropicClient) {
+    // Trim whitespace and remove any leading = or spaces from API key
+    let apiKey = (process.env.ANTHROPIC_API_KEY || '').trim();
+    // Remove leading = if present (Railway sometimes adds this)
+    if (apiKey.startsWith('=')) {
+      apiKey = apiKey.substring(1).trim();
+    }
+    if (!apiKey || apiKey === 'your-api-key-here') {
+      throw new Error('ANTHROPIC_API_KEY environment variable is not set');
+    }
     anthropicClient = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY || 'your-api-key-here',
+      apiKey,
     });
   }
   return anthropicClient;
@@ -31,18 +40,28 @@ export async function parseCommand(
   fogMap: FogState[][],
   mapTiles: TileType[][],
   scroll?: string,
+  model?: string,
 ): Promise<LLMResponse> {
   const { system, user } = buildPrompt(player, units, bases, fogMap, mapTiles, command, scroll);
+
+  // Map model selector values to actual Claude model names
+  const modelMap: Record<string, string> = {
+    'haiku': 'claude-haiku-4-5-20251001', // Haiku 4.5
+    'sonnet-3.5': 'claude-sonnet-4-5-20250929', // Sonnet 4.5
+    'sonnet-4': 'claude-sonnet-4-5-20250929', // Sonnet 4.5 (same as above)
+  };
+  const selectedModel = modelMap[model || 'sonnet-3.5'] || 'claude-sonnet-4-5-20250929';
 
   try {
     const client = getClient();
 
     const model = process.env.LLM_MODEL || 'claude-sonnet-4-6';
     const message = await client.messages.create({
-      model,
-      max_tokens: 1024,
+      model: selectedModel,
+      max_tokens: 4096,
       system,
       messages: [{ role: 'user', content: user }],
+      temperature: 0, // Deterministic for consistent JSON formatting
     });
 
     // Extract text content
@@ -56,14 +75,43 @@ export async function parseCommand(
     }
 
     const rawText = textBlock.text.trim();
+    console.log('Raw LLM response (first 500 chars):', rawText.substring(0, 500));
 
-    // Try to parse JSON (handle potential markdown wrapping)
+    // Try to parse JSON (handle potential markdown wrapping and malformed JSON)
     let jsonText = rawText;
+
+    // Remove markdown code blocks
     if (jsonText.startsWith('```')) {
       jsonText = jsonText.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
     }
 
-    const parsed = JSON.parse(jsonText) as LLMResponse;
+    // Try to extract JSON if there's other text
+    const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      jsonText = jsonMatch[0];
+    }
+
+    // Clean up common JSON formatting issues
+    jsonText = jsonText
+      .replace(/,(\s*[}\]])/g, '$1') // Remove trailing commas
+      .replace(/'/g, '"') // Replace single quotes with double quotes
+      .replace(/([{,]\s*)(\w+):/g, '$1"$2":') // Quote unquoted keys
+      .trim();
+
+    let parsed: LLMResponse;
+    try {
+      parsed = JSON.parse(jsonText) as LLMResponse;
+    } catch (parseError) {
+      console.error('JSON parse failed, raw text:', rawText);
+      console.error('Cleaned JSON text:', jsonText);
+      console.error('Parse error:', parseError);
+
+      return {
+        actions: [],
+        response: 'Failed to parse AI response. The command format may be too complex.',
+        needsClarification: false,
+      };
+    }
 
     // Validate actions
     const playerUnits = units.filter(u => u.owner === player && u.alive);
@@ -80,9 +128,15 @@ export async function parseCommand(
     // Check if it's an API key issue
     const errMsg = error instanceof Error ? error.message : String(error);
     if (errMsg.includes('api_key') || errMsg.includes('authentication') || errMsg.includes('401')) {
+      const apiKey = process.env.ANTHROPIC_API_KEY;
+      const keyInfo = apiKey
+        ? `Key present (${apiKey.length} chars, starts: "${apiKey.substring(0, 15)}...")`
+        : 'Key missing';
+      console.error(`API Key Debug: ${keyInfo}`);
+
       return {
         actions: [],
-        response: 'API key not configured. Please set ANTHROPIC_API_KEY in .env file.',
+        response: 'Authentication failed. API key may be invalid or expired.',
         needsClarification: false,
       };
     }

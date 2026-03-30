@@ -1,6 +1,6 @@
-// ============================================================
+//
 // Command input handler with history
-// ============================================================
+//
 
 export class CommandInput {
   private inputEl: HTMLInputElement;

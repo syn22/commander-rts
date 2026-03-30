@@ -3,9 +3,9 @@ import { Unit } from './Unit.js';
 import { Base } from './Combat.js';
 import { GAME_CONFIG, TERRAIN_CONFIG, UNIT_STATS } from './Config.js';
 
-// ============================================================
+//
 // Fog of War calculation
-// ============================================================
+//
 
 export class FogOfWarSystem {
   // Track what each player has ever seen

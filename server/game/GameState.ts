@@ -4,10 +4,11 @@ import { Unit, UnitOrder } from './Unit.js';
 import { Base, createBase } from './Combat.js';
 import { generateMap } from './MapGenerator.js';
 import { FogOfWarSystem } from './FogOfWar.js';
+import { LevelDefinition, EnemyGroup } from './levels/LevelDefinitions.js';
 
-// ============================================================
+//
 // Game State — holds all game data
-// ============================================================
+//
 
 export class GameState {
   map: TileType[][];
@@ -18,71 +19,134 @@ export class GameState {
   gameOver: boolean = false;
   winner: PlayerId | null = null;
   startTime: number = Date.now();
+  levelId: number | null = null;
 
-  constructor() {
+  constructor(levelDef?: LevelDefinition) {
     this.map = generateMap();
     this.fog = new FogOfWarSystem();
     this.bases = [createBase(1), createBase(2)];
-    this.spawnUnits(1);
-    this.spawnUnits(2);
+
+    if (levelDef) {
+      this.levelId = levelDef.id;
+      if (levelDef.mapModifier) {
+        levelDef.mapModifier(this.map);
+      }
+      this.spawnLevelArmy(1, levelDef);
+      this.spawnLevelEnemies(levelDef);
+    } else {
+      this.spawnUnits(1);
+      this.spawnUnits(2);
+    }
   }
 
   /**
-   * Spawn all units for a player in formation near their base
+   * Spawn player army for a level (near player 1 base)
+   */
+  private spawnLevelArmy(player: PlayerId, levelDef: LevelDefinition): void {
+    const base = GAME_CONFIG.P1_BASE;
+    let unitIndex = 0;
+
+    for (const group of levelDef.playerArmy) {
+      for (let i = 0; i < group.count; i++) {
+        // Arrange in grid formation from base
+        const col = Math.floor(unitIndex / 5);
+        const row = unitIndex % 5;
+        const pos: Position = {
+          x: base.x + 2 + col,
+          y: base.y - 2 + row,
+        };
+        const safePos = this.clampToMap(this.findNearestWalkable(pos));
+        const typeName = group.type;
+        this.units.push(new Unit(`${player}_${typeName}_${i + 1}`, group.type, player, safePos));
+        unitIndex++;
+      }
+    }
+  }
+
+  /**
+   * Spawn enemy army for a level at specified positions
+   */
+  private spawnLevelEnemies(levelDef: LevelDefinition): void {
+    const player: PlayerId = 2;
+
+    for (const group of levelDef.enemyArmy) {
+      for (let i = 0; i < group.count; i++) {
+        // Arrange in grid formation around the group's center position
+        const col = Math.floor(i / 5);
+        const row = i % 5;
+        const pos: Position = {
+          x: group.position.x + col,
+          y: group.position.y - 2 + row,
+        };
+        const safePos = this.clampToMap(this.findNearestWalkable(pos));
+        const typeName = group.type;
+        this.units.push(new Unit(`${player}_${typeName}_${i + 1}`, group.type, player, safePos));
+      }
+    }
+  }
+
+  /**
+   * Spawn all units for a player in formation near their base (default/multiplayer)
    */
   private spawnUnits(player: PlayerId): void {
     const base = player === 1 ? GAME_CONFIG.P1_BASE : GAME_CONFIG.P2_BASE;
     const dir = player === 1 ? 1 : -1; // P1 spawns to the right of base, P2 to the left
 
-    // Spawn positions relative to base (spread out in a formation)
-    // Footmen in front (closest to center)
-    // Archers behind footmen
-    // Cavalry on flanks
-    // Catapult in back
+    // Spawn positions relative to base in organized grid formations
+    // Layout (from base outward):
+    // - Catapults (5x1) closest to base
+    // - Archers (5x3) behind catapults
+    // - Footmen (5x3) in middle
+    // - Cavalry (5x3) at front (fastest, can engage first)
 
     const comp = GAME_CONFIG.ARMY_COMPOSITION;
-    let unitIndex = 0;
 
-    // Footmen — front line (2 columns of 3)
-    for (let i = 0; i < comp[UnitType.FOOTMAN]; i++) {
-      const col = Math.floor(i / 3);
-      const row = i % 3;
-      const pos: Position = {
-        x: base.x + dir * (3 + col),
-        y: base.y - 1 + row,
-      };
-      const safePos = this.clampToMap(this.findNearestWalkable(pos));
-      this.units.push(new Unit(`${player}_footman_${i + 1}`, UnitType.FOOTMAN, player, safePos));
-    }
-
-    // Archers — behind footmen (1 row of 4)
-    for (let i = 0; i < comp[UnitType.ARCHER]; i++) {
+    // Catapults — 5x1 formation, closest to base (siege units stay back)
+    for (let i = 0; i < comp[UnitType.CATAPULT]; i++) {
+      const row = i % 5;
       const pos: Position = {
         x: base.x + dir * 2,
-        y: base.y - 2 + i,
+        y: base.y - 2 + row,
+      };
+      const safePos = this.clampToMap(this.findNearestWalkable(pos));
+      this.units.push(new Unit(`${player}_catapult_${i + 1}`, UnitType.CATAPULT, player, safePos));
+    }
+
+    // Archers — 5x3 formation behind catapults
+    for (let i = 0; i < comp[UnitType.ARCHER]; i++) {
+      const col = Math.floor(i / 5);
+      const row = i % 5;
+      const pos: Position = {
+        x: base.x + dir * (4 + col),
+        y: base.y - 2 + row,
       };
       const safePos = this.clampToMap(this.findNearestWalkable(pos));
       this.units.push(new Unit(`${player}_archer_${i + 1}`, UnitType.ARCHER, player, safePos));
     }
 
-    // Cavalry — flanks
-    for (let i = 0; i < comp[UnitType.CAVALRY]; i++) {
-      const flankOffset = i === 0 ? -3 : i === 1 ? 3 : -4;
+    // Footmen — 5x3 formation in middle
+    for (let i = 0; i < comp[UnitType.FOOTMAN]; i++) {
+      const col = Math.floor(i / 5);
+      const row = i % 5;
       const pos: Position = {
-        x: base.x + dir * (3 + Math.floor(i / 2)),
-        y: base.y + flankOffset,
+        x: base.x + dir * (7 + col),
+        y: base.y - 2 + row,
+      };
+      const safePos = this.clampToMap(this.findNearestWalkable(pos));
+      this.units.push(new Unit(`${player}_footman_${i + 1}`, UnitType.FOOTMAN, player, safePos));
+    }
+
+    // Cavalry — 5x3 formation at front (fastest units in front)
+    for (let i = 0; i < comp[UnitType.CAVALRY]; i++) {
+      const col = Math.floor(i / 5);
+      const row = i % 5;
+      const pos: Position = {
+        x: base.x + dir * (10 + col),
+        y: base.y - 2 + row,
       };
       const safePos = this.clampToMap(this.findNearestWalkable(pos));
       this.units.push(new Unit(`${player}_cavalry_${i + 1}`, UnitType.CAVALRY, player, safePos));
     }
-
-    // Catapult — behind everything
-    const catPos: Position = {
-      x: base.x + dir * 1,
-      y: base.y,
-    };
-    const safeCatPos = this.clampToMap(this.findNearestWalkable(catPos));
-    this.units.push(new Unit(`${player}_catapult_1`, UnitType.CATAPULT, player, safeCatPos));
   }
 
   private clampToMap(pos: Position): Position {

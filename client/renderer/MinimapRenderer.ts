@@ -7,9 +7,9 @@ import {
   GameStateUpdate,
 } from '../../shared/types.js';
 
-// ============================================================
+//
 // Minimap renderer
-// ============================================================
+//
 
 const MINIMAP_WIDTH = 200;
 const MINIMAP_HEIGHT = 150;

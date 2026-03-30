@@ -1,8 +1,8 @@
 import { GameStateUpdate, PlayerId } from '../../shared/types.js';
 
-// ============================================================
+//
 // HUD / UI updates
-// ============================================================
+//
 
 export class UIRenderer {
   private baseHpEl: HTMLElement;
